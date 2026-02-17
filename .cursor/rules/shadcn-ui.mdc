@@ -1,0 +1,38 @@
+---
+alwaysApply: true
+description: Guidelines for using shadcn/ui components in the project
+---
+
+# shadcn/ui Component Guidelines
+
+This project uses **shadcn/ui** for all UI elements and components.
+
+## Initialization
+
+If shadcn/ui is not initialized in the project, use:
+
+```bash
+npx shadcn@latest init
+```
+
+## Adding Components
+
+When a specific component is needed but not yet installed, use the shadcn CLI to add it:
+
+```bash
+npx shadcn@latest add <component-name>
+```
+
+**Examples:**
+- Button: `npx shadcn@latest add button`
+- Card: `npx shadcn@latest add card`
+- Dialog: `npx shadcn@latest add dialog`
+- Form: `npx shadcn@latest add form`
+- Input: `npx shadcn@latest add input`
+
+## Important Notes
+
+- **Always** use shadcn/ui components for UI elements rather than creating custom components from scratch
+- Check if a component exists in the shadcn/ui library before building custom alternatives
+- Components are installed into the project (typically `components/ui/`) and can be customized as needed
+- Refer to [shadcn/ui documentation](https://ui.shadcn.com) for available components and their usage

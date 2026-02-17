@@ -1,0 +1,50 @@
+---
+alwaysApply: true
+description: Guidelines for database interactions using Drizzle ORM
+---
+
+# Database Interaction Guidelines
+
+All database interactions in this project **must** use Drizzle ORM with the schema defined in [db/schema.ts](mdc:db/schema.ts).
+
+## Core Principles
+
+1. **Always import from the schema**: Use the table definitions and enums exported from `db/schema.ts`
+2. **Use Drizzle query syntax**: Never write raw SQL queries directly
+3. **Leverage type safety**: Drizzle provides full TypeScript type inference from the schema
+
+## Available Tables
+
+The schema defines the following tables:
+- `groupsTable` - Community groups with approval workflow
+- `eventsTable` - Events organized by groups
+- `groupMembersTable` - Group membership with roles (owner, organizer, member)
+- `eventAttendeesTable` - Event attendance tracking
+
+## Example Usage
+
+```typescript
+import { db } from '@/db';
+import { groupsTable, eventsTable, groupMembersTable } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
+
+// Query examples
+const groups = await db.select().from(groupsTable).where(eq(groupsTable.isApproved, true));
+const events = await db.select().from(eventsTable).where(eq(eventsTable.groupId, groupId));
+
+// Insert examples
+await db.insert(groupsTable).values({ name, description, city, ownerId });
+
+// Update examples
+await db.update(groupsTable).set({ isApproved: true }).where(eq(groupsTable.id, id));
+
+// Delete examples
+await db.delete(eventsTable).where(eq(eventsTable.id, eventId));
+```
+
+## Important Notes
+
+- User IDs are stored as Clerk user IDs (varchar)
+- Foreign key relationships have cascade delete configured
+- Timestamps use `defaultNow()` for automatic tracking
+- Always use the `memberRoleEnum` for group member roles

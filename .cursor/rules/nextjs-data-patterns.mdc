@@ -1,0 +1,113 @@
+---
+alwaysApply: true
+---
+  city: z.string().min(1),
+});
+
+type CreateGroupInput = z.infer<typeof createGroupSchema>;
+
+export async function createGroup(input: CreateGroupInput) {
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+  
+  const validated = createGroupSchema.parse(input);
+  
+  await db.insert(groupsTable).values({
+    ...validated,
+    ownerId: userId,
+  });
+  
+  revalidatePath('/groups');
+}
+
+// ❌ WRONG: Using FormData as type, no validation
+export async function createGroup(formData: FormData) {
+  const name = formData.get('name');
+  await db.insert(groupsTable).values({ name });
+}
+```
+
+## Data Validation
+
+All data validation must use **Zod schemas**. Define schemas before your Server Actions and validate all input.
+
+```typescript
+// ✅ CORRECT: Zod validation
+import { z } from 'zod';
+
+const updateEventSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(3).max(100),
+  date: z.date(),
+  maxAttendees: z.number().int().positive().optional(),
+});
+
+type UpdateEventInput = z.infer<typeof updateEventSchema>;
+
+export async function updateEvent(input: UpdateEventInput) {
+  const validated = updateEventSchema.parse(input);
+  // ... rest of implementation
+}
+
+// ❌ WRONG: No validation
+export async function updateEvent(input: any) {
+  await db.update(eventsTable).set(input);
+}
+```
+
+## TypeScript Types for Server Actions
+
+Server Action parameters must use proper TypeScript types derived from Zod schemas. **Never use `FormData` as the parameter type.**
+
+```typescript
+// ✅ CORRECT: Proper TypeScript type from Zod
+const deleteGroupSchema = z.object({
+  groupId: z.string(),
+});
+
+type DeleteGroupInput = z.infer<typeof deleteGroupSchema>;
+
+export async function deleteGroup(input: DeleteGroupInput) {
+  const validated = deleteGroupSchema.parse(input);
+  // ... implementation
+}
+
+// ❌ WRONG: Using FormData as parameter type
+export async function deleteGroup(formData: FormData) {
+  const groupId = formData.get('groupId');
+  // ... implementation
+}
+```
+
+## Client Component Integration
+
+Client Components should call Server Actions and receive data as props from Server Components.
+
+```typescript
+// Server Component (page.tsx)
+export default async function GroupPage({ params }: { params: { id: string } }) {
+  const group = await fetchGroup(params.id);
+  return <GroupDetails group={group} />;
+}
+
+// Client Component (GroupDetails.tsx)
+'use client';
+import { deleteGroup } from '@/actions/groups';
+
+export function GroupDetails({ group }: { group: Group }) {
+  const handleDelete = async () => {
+    await deleteGroup({ groupId: group.id });
+  };
+  
+  return <button onClick={handleDelete}>Delete</button>;
+}
+```
+
+## Important Reminders
+
+- **Server Components**: Use for all data retrieval
+- **Server Actions**: Use for all database mutations (create, update, delete)
+- **Zod Schemas**: Define and validate all inputs
+- **Type Safety**: Use `z.infer<typeof schema>` for TypeScript types
+- **No FormData Types**: Always use proper TypeScript types from Zod schemas
+- **Revalidation**: Call `revalidatePath()` or `revalidateTag()` after mutations to update cached data

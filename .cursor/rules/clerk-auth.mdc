@@ -1,0 +1,88 @@
+---
+alwaysApply: true
+---
+
+# Clerk Authentication & Authorization Guidelines
+
+All authentication in this project is handled by **Clerk**. User authorization and data access control are critical security requirements.
+
+## Core Principles
+
+1. **Always authenticate users**: Verify the user's identity using Clerk before processing any request
+2. **Enforce data ownership**: Users can only access, modify, or delete their own data
+3. **Validate authorization**: Check user permissions before performing any data operation
+
+## Authentication with Clerk
+
+```typescript
+import { auth, currentUser } from '@clerk/nextjs/server';
+
+// Get the current user ID
+const { userId } = await auth();
+if (!userId) {
+  return new Response('Unauthorized', { status: 401 });
+}
+
+// Or get full user details
+const user = await currentUser();
+```
+
+## Authorization Rules
+
+### Queries (Read Operations)
+- Always filter queries by the authenticated user's ID
+- Never allow users to query data belonging to other users
+- Use Clerk's `userId` in WHERE clauses
+
+```typescript
+// ✅ CORRECT: Filter by authenticated user
+const { userId } = await auth();
+const userGroups = await db
+  .select()
+  .from(groupsTable)
+  .where(eq(groupsTable.ownerId, userId));
+
+// ❌ WRONG: No user filtering
+const allGroups = await db.select().from(groupsTable);
+```
+
+### Mutations (Create/Update/Delete Operations)
+- Verify ownership before updates or deletes
+- Set the authenticated user as the owner on creates
+- Return 403 Forbidden if the user doesn't own the resource
+
+```typescript
+// ✅ CORRECT: Verify ownership before update
+const { userId } = await auth();
+const [group] = await db
+  .select()
+  .from(groupsTable)
+  .where(eq(groupsTable.id, groupId));
+
+if (group.ownerId !== userId) {
+  return new Response('Forbidden', { status: 403 });
+}
+
+await db.update(groupsTable).set(updates).where(eq(groupsTable.id, groupId));
+```
+
+## Related Resources
+
+### Group Membership
+- Check `groupMembersTable` for role-based permissions (owner, organizer, member)
+- Validate that the user is a member of the group before allowing access to group resources
+
+### Event Access
+- Users can view events if they are members of the hosting group
+- Only group organizers and owners can create/edit events
+
+## Middleware
+
+The [middleware.ts](mdc:middleware.ts) file should be configured to protect routes using Clerk's middleware.
+
+## Important Reminders
+
+- **Never trust client-provided user IDs**: Always use `auth()` or `currentUser()` from Clerk
+- **Validate on the server**: Client-side checks are not sufficient for security
+- **Fail securely**: If authorization fails, deny access rather than proceeding
+- **Audit trail**: Consider logging authorization failures for security monitoring
