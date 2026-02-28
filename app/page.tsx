@@ -15,8 +15,11 @@ export default async function Home() {
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center gap-8 px-4">
       <div className="flex flex-col items-center gap-3 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+        <h1 className="flex flex-wrap items-baseline justify-center gap-2 text-4xl font-semibold tracking-tight sm:text-5xl">
           Let&apos;s Meet
+          <span className="text-lg font-normal text-muted-foreground sm:text-xl">
+            - currently in production
+          </span>
         </h1>
         <p className="text-lg text-muted-foreground">
           Your new community platform
