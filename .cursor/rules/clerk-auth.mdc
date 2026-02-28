@@ -1,7 +1,6 @@
 ---
 alwaysApply: true
 ---
-
 # Clerk Authentication & Authorization Guidelines
 
 All authentication in this project is handled by **Clerk**. User authorization and data access control are critical security requirements.

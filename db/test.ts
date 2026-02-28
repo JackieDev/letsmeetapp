@@ -1,46 +1,48 @@
-import 'dotenv/config';
-import { eq } from 'drizzle-orm';
-import { db } from './index';
-import { usersTable } from './schema';
+import "dotenv/config";
+import {
+  insertGroup,
+  getGroups,
+  getGroup,
+  updateGroup,
+  deleteGroupById,
+} from "./queries/groups";
 
 async function main() {
-  console.log('Starting database test...\n');
+  console.log("Starting database test...\n");
 
-  // Create a new user
-  const user: typeof usersTable.$inferInsert = {
-    name: 'John',
-    age: 30,
-    email: 'john@example.com',
-  };
+  const ownerId = "test-owner-id";
 
-  await db.insert(usersTable).values(user);
-  console.log('✓ New user created!');
+  // Create a new group
+  const created = await insertGroup({
+    name: "Test Group",
+    description: "A test group",
+    city: "London",
+    ownerId,
+  });
+  console.log("✓ New group created!", created);
 
-  // Get all users
-  const users = await db.select().from(usersTable);
-  console.log('✓ Getting all users from the database:', users);
+  // Get all groups
+  const groups = await getGroups();
+  console.log("✓ Getting all groups from the database:", groups);
 
-  // Update user
-  await db
-    .update(usersTable)
-    .set({
-      age: 31,
-    })
-    .where(eq(usersTable.email, user.email));
-  console.log('✓ User info updated!');
+  // Update group
+  await updateGroup(created.id, {
+    description: "Updated description",
+  });
+  console.log("✓ Group info updated!");
 
-  // Get updated user
-  const updatedUsers = await db.select().from(usersTable);
-  console.log('✓ Updated users:', updatedUsers);
+  // Get updated group
+  const updated = await getGroup(created.id);
+  console.log("✓ Updated group:", updated);
 
-  // Delete user
-  await db.delete(usersTable).where(eq(usersTable.email, user.email));
-  console.log('✓ User deleted!');
+  // Delete group
+  await deleteGroupById(created.id);
+  console.log("✓ Group deleted!");
 
-  console.log('\n✓ Database test completed successfully!');
+  console.log("\n✓ Database test completed successfully!");
 }
 
 main().catch((error) => {
-  console.error('Error:', error);
+  console.error("Error:", error);
   process.exit(1);
 });
