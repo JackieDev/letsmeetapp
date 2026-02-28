@@ -1,6 +1,52 @@
 ---
 alwaysApply: true
 ---
+# Next.js Data Patterns
+
+## Database Access (db/queries)
+
+All data fetching and mutations must go through helper functions in the **db/queries** directory. Do not use `db` (Drizzle) directly in Server Components, Server Actions, or route handlers.
+
+- **Queries (reads)**: Define in `db/queries/` (e.g. `getGroup`, `getGroups`, `getEvent`). Server Components and Server Actions call these for data fetching.
+- **Mutations (writes)**: Define in `db/queries/` (e.g. `createGroup`, `updateEvent`, `deleteGroup`). Server Actions handle auth and Zod validation, then call these helpers and run revalidation.
+
+```typescript
+// ✅ CORRECT: db/queries/groups.ts – query helper
+import { db } from '@/db';
+import { groupsTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+export async function getGroup(id: string) {
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, id));
+  return group ?? null;
+}
+
+// ✅ CORRECT: db/queries/groups.ts – mutation helper
+export async function insertGroup(data: { name: string; description: string; city: string; ownerId: string }) {
+  await db.insert(groupsTable).values(data);
+}
+
+// ❌ WRONG: Using db directly in a Server Component or Server Action
+export default async function Page() {
+  const groups = await db.select().from(groupsTable); // Use getGroups() from db/queries instead
+  return <div>...</div>;
+}
+```
+
+## Server Actions
+
+Server Actions validate input with Zod, enforce auth, call mutation helpers from **db/queries**, then revalidate.
+
+```typescript
+// ✅ CORRECT: actions/groups.ts – calls db/queries, validates, revalidates
+import { auth } from '@clerk/nextjs/server';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { insertGroup } from '@/db/queries/groups';
+
+const createGroupSchema = z.object({
+  name: z.string().min(1),
+  description: z.string(),
   city: z.string().min(1),
 });
 
@@ -9,14 +55,9 @@ type CreateGroupInput = z.infer<typeof createGroupSchema>;
 export async function createGroup(input: CreateGroupInput) {
   const { userId } = await auth();
   if (!userId) throw new Error('Unauthorized');
-  
+
   const validated = createGroupSchema.parse(input);
-  
-  await db.insert(groupsTable).values({
-    ...validated,
-    ownerId: userId,
-  });
-  
+  await insertGroup({ ...validated, ownerId: userId });
   revalidatePath('/groups');
 }
 
@@ -46,10 +87,10 @@ type UpdateEventInput = z.infer<typeof updateEventSchema>;
 
 export async function updateEvent(input: UpdateEventInput) {
   const validated = updateEventSchema.parse(input);
-  // ... rest of implementation
+  await updateEventById(validated); // from db/queries/events
 }
 
-// ❌ WRONG: No validation
+// ❌ WRONG: No validation, or using db directly
 export async function updateEvent(input: any) {
   await db.update(eventsTable).set(input);
 }
@@ -69,7 +110,7 @@ type DeleteGroupInput = z.infer<typeof deleteGroupSchema>;
 
 export async function deleteGroup(input: DeleteGroupInput) {
   const validated = deleteGroupSchema.parse(input);
-  // ... implementation
+  await deleteGroupById(validated.groupId); // from db/queries/groups
 }
 
 // ❌ WRONG: Using FormData as parameter type
@@ -84,9 +125,13 @@ export async function deleteGroup(formData: FormData) {
 Client Components should call Server Actions and receive data as props from Server Components.
 
 ```typescript
-// Server Component (page.tsx)
+// Server Component (page.tsx) – data via db/queries
+import { notFound } from 'next/navigation';
+import { getGroup } from '@/db/queries/groups';
+
 export default async function GroupPage({ params }: { params: { id: string } }) {
-  const group = await fetchGroup(params.id);
+  const group = await getGroup(params.id);
+  if (!group) notFound();
   return <GroupDetails group={group} />;
 }
 
@@ -105,9 +150,10 @@ export function GroupDetails({ group }: { group: Group }) {
 
 ## Important Reminders
 
-- **Server Components**: Use for all data retrieval
-- **Server Actions**: Use for all database mutations (create, update, delete)
-- **Zod Schemas**: Define and validate all inputs
-- **Type Safety**: Use `z.infer<typeof schema>` for TypeScript types
-- **No FormData Types**: Always use proper TypeScript types from Zod schemas
-- **Revalidation**: Call `revalidatePath()` or `revalidateTag()` after mutations to update cached data
+- **db/queries**: All reads and writes go through helper functions in `db/queries/`. No direct `db` usage in pages, actions, or route handlers.
+- **Server Components**: Fetch data only by calling query helpers from `db/queries/` (e.g. `getGroup`, `getGroups`).
+- **Server Actions**: Validate with Zod, enforce auth, call mutation helpers from `db/queries/`, then call `revalidatePath()` or `revalidateTag()`.
+- **Zod Schemas**: Define and validate all Server Action inputs.
+- **Type Safety**: Use `z.infer<typeof schema>` for TypeScript types.
+- **No FormData Types**: Use proper TypeScript types from Zod schemas for action parameters.
+- **Revalidation**: Call `revalidatePath()` or `revalidateTag()` after mutations to update cached data.

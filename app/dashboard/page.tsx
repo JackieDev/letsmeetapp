@@ -1,23 +1,122 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
+import Image from "next/image";
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { getEventsUserIsAttending } from "@/db/queries/events";
+import { getGroupsUserIsMemberOf } from "@/db/queries/groups";
+import { buttonVariants } from "@/components/ui/button";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/");
+  }
+
+  const [attendingEvents, memberGroups] = await Promise.all([
+    getEventsUserIsAttending(userId),
+    getGroupsUserIsMemberOf(userId),
+  ]);
+
   return (
-    <div className="container max-w-screen-2xl px-4 py-8">
+    <div className="container max-w-screen-2xl flex flex-col items-center px-4 py-8">
       <SignedIn>
-        <div className="flex flex-col gap-6">
+        <div className="flex w-full max-w-2xl flex-col gap-6">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground mt-1">
               Welcome back. Manage your groups and events from here.
             </p>
           </div>
+
           <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
-            <h2 className="text-lg font-medium">Getting started</h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              Your dashboard is ready. Create a group or browse events to get
-              started.
-            </p>
+            <h2 className="text-lg font-medium">Groups you&apos;re in</h2>
+            {memberGroups.length === 0 ? (
+              <p className="text-muted-foreground mt-2 text-sm">
+                You&apos;re not in any groups yet. Search groups to find one to join.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {memberGroups.map((group) => (
+                  <li
+                    key={group.id}
+                    className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3 text-sm"
+                  >
+                    {group.profilePicture ? (
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                        <Image
+                          src={group.profilePicture}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          sizes="40px"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-lg">
+                        —
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/group/${group.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {group.name}
+                      </Link>
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        {group.city}
+                        {group.ownerId === userId ? " · You own this group" : null}
+                      </span>
+                    </div>
+                    <Link
+                      href={`/group/${group.id}`}
+                      className={buttonVariants({ variant: "secondary", size: "sm" })}
+                    >
+                      View
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+            <h2 className="text-lg font-medium">Events you&apos;re signed up for</h2>
+            {attendingEvents.length === 0 ? (
+              <p className="text-muted-foreground mt-2 text-sm">
+                You haven&apos;t signed up for any events yet. Browse groups to find events.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {attendingEvents.map((event) => (
+                  <li
+                    key={event.id}
+                    className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background p-3 text-sm"
+                  >
+                    <Link
+                      href={`/group/${event.groupId}/event/${event.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {event.name}
+                    </Link>
+                    <span className="text-muted-foreground text-xs">
+                      {event.groupName}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {new Date(event.eventDate).toLocaleString()}
+                      {event.location ? ` · ${event.location}` : ""}
+                    </span>
+                    <Link
+                      href={`/group/${event.groupId}/event/${event.id}`}
+                      className={buttonVariants({ variant: "link", size: "sm", className: "h-auto p-0 text-xs" })}
+                    >
+                      View event →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </SignedIn>
