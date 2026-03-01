@@ -1,0 +1,52 @@
+# Dependencies
+node_modules
+.pnpm-store
+.npm
+.yarn
+.bun
+
+# Build output
+.next
+out
+dist
+build
+
+# Development
+.git
+.gitignore
+.env*.local
+.env.development
+.env.test
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# IDE & OS
+.idea
+.vscode
+*.swp
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*
+.docker
+
+# Docs & misc
+README.md
+*.md
+.editorconfig
+.eslintcache
+
+# Tests (optional: remove if you want tests in image)
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__
+coverage
+.nyc_output
