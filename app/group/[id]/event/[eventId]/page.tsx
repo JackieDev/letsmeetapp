@@ -6,8 +6,10 @@ import { getApprovedGroup } from "@/db/queries/groups";
 import {
   getEventById,
   getAttendeesByEventId,
+  getEventNotesByEventId,
 } from "@/db/queries/events";
 import { buttonVariants } from "@/components/ui/button";
+import { AddEventNoteForm } from "./AddEventNoteForm";
 import { CancelAttendanceButton } from "./CancelAttendanceButton";
 import { DeleteEventButton } from "./DeleteEventButton";
 
@@ -37,29 +39,34 @@ export default async function EventPage({
     notFound();
   }
 
-  const attendees = await getAttendeesByEventId(eventId);
+  const [attendees, notes] = await Promise.all([
+    getAttendeesByEventId(eventId),
+    getEventNotesByEventId(eventId),
+  ]);
   const isCurrentUserAttending = attendees.some((a) => a.userId === userId);
   const isCurrentUserOrganizer = event.organizerId === userId;
 
+  const noteAuthorIds = [...new Set(notes.map((n) => n.userId))];
+  const allUserIds = [...new Set([...attendees.map((a) => a.userId), ...noteAuthorIds])];
   const attendeeNames: Record<string, string> = {};
   try {
     const client = await clerkClient();
     await Promise.all(
-      attendees.map(async (a) => {
+      allUserIds.map(async (uid) => {
         try {
-          const user = await client.users.getUser(a.userId);
-          attendeeNames[a.userId] =
+          const user = await client.users.getUser(uid);
+          attendeeNames[uid] =
             [user.firstName, user.lastName].filter(Boolean).join(" ") ||
             user.emailAddresses[0]?.emailAddress ||
             "Unknown";
         } catch {
-          attendeeNames[a.userId] = "Unknown";
+          attendeeNames[uid] = "Unknown";
         }
       })
     );
   } catch {
-    attendees.forEach((a) => {
-      if (!attendeeNames[a.userId]) attendeeNames[a.userId] = "Unknown";
+    allUserIds.forEach((uid) => {
+      if (!attendeeNames[uid]) attendeeNames[uid] = "Unknown";
     });
   }
 
@@ -69,7 +76,7 @@ export default async function EventPage({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/group/${groupId}`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
+            className={buttonVariants({ variant: "outline", size: "default" })}
           >
             Back to group
           </Link>
@@ -106,7 +113,11 @@ export default async function EventPage({
 
         <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
           <h2 className="text-lg font-medium">
-            Signed up ({attendees.length})
+            Signed up (
+            {event.attendeeLimit != null
+              ? `${attendees.length} / ${event.attendeeLimit}`
+              : attendees.length}
+            )
           </h2>
           {attendees.length === 0 ? (
             <p className="text-muted-foreground mt-2 text-sm">
@@ -130,6 +141,38 @@ export default async function EventPage({
                       {a.comments}
                     </p>
                   ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+          <h2 className="text-lg font-medium">Event notes</h2>
+          {isCurrentUserAttending && (
+            <div className="mt-3">
+              <AddEventNoteForm eventId={eventId} />
+            </div>
+          )}
+          {notes.length === 0 ? (
+            <p className="text-muted-foreground mt-3 text-sm">
+              No notes yet.
+              {!isCurrentUserAttending && " Sign up to add a note."}
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {notes.map((note) => (
+                <li
+                  key={note.id}
+                  className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background p-3 text-sm"
+                >
+                  <span className="font-medium">
+                    {attendeeNames[note.userId] ?? "Unknown"}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {new Date(note.createdAt).toLocaleString()}
+                  </span>
+                  <p className="mt-1 whitespace-pre-wrap">{note.content}</p>
                 </li>
               ))}
             </ul>

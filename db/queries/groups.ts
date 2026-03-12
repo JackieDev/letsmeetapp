@@ -9,6 +9,7 @@ function escapeIlike(value: string): string {
 
 export type GroupInsert = typeof groupsTable.$inferInsert;
 export type Group = typeof groupsTable.$inferSelect;
+export type GroupMember = typeof groupMembersTable.$inferSelect;
 
 /** Get a single group by id. Returns null if not found. */
 export async function getGroup(id: number) {
@@ -28,16 +29,24 @@ export async function getApprovedGroup(id: number) {
   return group ?? null;
 }
 
-/** Get the number of members in a group. */
+/** Get the number of non-banned members in a group. */
 export async function getGroupMemberCount(groupId: number) {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(groupMembersTable)
-    .where(eq(groupMembersTable.groupId, groupId));
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.isBanned, false)
+      )
+    );
   return row?.count ?? 0;
 }
 
-/** True if the user is the group owner or has a row in group_members. */
+/**
+ * True if the user is the group owner or has a non-banned row in group_members.
+ * Banned members are treated as non-members.
+ */
 export async function isUserGroupMember(groupId: number, userId: string) {
   const [group] = await db
     .select({ ownerId: groupsTable.ownerId })
@@ -50,7 +59,8 @@ export async function isUserGroupMember(groupId: number, userId: string) {
     .where(
       and(
         eq(groupMembersTable.groupId, groupId),
-        eq(groupMembersTable.userId, userId)
+        eq(groupMembersTable.userId, userId),
+        eq(groupMembersTable.isBanned, false)
       )
     );
   return !!member;
@@ -74,7 +84,12 @@ export async function getGroupsUserIsMemberOf(userId: string) {
   const memberRows = await db
     .select({ groupId: groupMembersTable.groupId })
     .from(groupMembersTable)
-    .where(eq(groupMembersTable.userId, userId));
+    .where(
+      and(
+        eq(groupMembersTable.userId, userId),
+        eq(groupMembersTable.isBanned, false)
+      )
+    );
   const memberGroupIds = memberRows.map((r) => r.groupId);
   return db
     .select()
@@ -117,9 +132,139 @@ export async function insertGroup(data: GroupInsert) {
 export async function addGroupMember(data: {
   groupId: number;
   userId: string;
+  name: string;
   role: "owner" | "organizer" | "member";
 }) {
+  const [existing] = await db
+    .select({
+      id: groupMembersTable.id,
+      isBanned: groupMembersTable.isBanned,
+    })
+    .from(groupMembersTable)
+    .where(
+      and(
+        eq(groupMembersTable.groupId, data.groupId),
+        eq(groupMembersTable.userId, data.userId)
+      )
+    );
+
+  // If the user is banned, do not allow re-adding them as a member.
+  if (existing?.isBanned) {
+    throw new Error("User is banned from this group.");
+  }
+
+  // If they already have a non-banned membership row, treat as idempotent.
+  if (existing && !existing.isBanned) {
+    return;
+  }
+
   await db.insert(groupMembersTable).values(data);
+}
+
+/** Whether the user has a banned membership row for this group. */
+export async function isUserBannedFromGroup(groupId: number, userId: string) {
+  const [row] = await db
+    .select({ isBanned: groupMembersTable.isBanned })
+    .from(groupMembersTable)
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.userId, userId)
+      )
+    );
+  return row?.isBanned === true;
+}
+
+/** Get all members (including banned) for a group. */
+export async function getGroupMembers(groupId: number): Promise<GroupMember[]> {
+  return db
+    .select()
+    .from(groupMembersTable)
+    .where(eq(groupMembersTable.groupId, groupId))
+    .orderBy(groupMembersTable.joinedAt);
+}
+
+/** Remove a member from a group by user id. */
+export async function removeGroupMemberByUserId(
+  groupId: number,
+  userId: string
+) {
+  await db
+    .delete(groupMembersTable)
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.userId, userId)
+      )
+    );
+}
+
+/** Set the banned status for a group member by user id. */
+export async function setGroupMemberBannedStatus(
+  groupId: number,
+  userId: string,
+  isBanned: boolean
+) {
+  await db
+    .update(groupMembersTable)
+    .set({ isBanned })
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.userId, userId)
+      )
+    );
+}
+
+/** Update the role for a group member by user id. */
+export async function updateGroupMemberRole(
+  groupId: number,
+  userId: string,
+  role: "organizer" | "member"
+) {
+  await db
+    .update(groupMembersTable)
+    .set({ role })
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.userId, userId)
+      )
+    );
+}
+
+/** Get a single group member by group and user id. */
+export async function getGroupMemberByUserId(
+  groupId: number,
+  userId: string
+): Promise<GroupMember | null> {
+  const [row] = await db
+    .select()
+    .from(groupMembersTable)
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.userId, userId)
+      )
+    );
+  return row ?? null;
+}
+
+/** Update the display name for a group member by user id. */
+export async function updateGroupMemberName(
+  groupId: number,
+  userId: string,
+  name: string
+) {
+  await db
+    .update(groupMembersTable)
+    .set({ name: name.slice(0, 255) })
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.userId, userId)
+      )
+    );
 }
 
 /** Update a group by id. */

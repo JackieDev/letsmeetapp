@@ -35,8 +35,8 @@ export function CancelAttendanceButton({ eventId }: CancelAttendanceButtonProps)
     <div className="flex flex-col gap-2">
       <Button
         variant="outline"
-        size="sm"
-        className="text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+        size="default"
+        className="w-fit"
         onClick={handleCancel}
         disabled={isSubmitting}
       >

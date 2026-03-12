@@ -36,6 +36,13 @@ export function AddEventDialog({ groupId }: AddEventDialogProps) {
     const description = (form.elements.namedItem("description") as HTMLInputElement).value.trim();
     const eventDate = (form.elements.namedItem("eventDate") as HTMLInputElement).value;
     const location = (form.elements.namedItem("location") as HTMLInputElement).value.trim();
+    const attendeeLimitRaw = (form.elements.namedItem("attendeeLimit") as HTMLInputElement).value.trim();
+    const attendeeLimit = attendeeLimitRaw ? parseInt(attendeeLimitRaw, 10) : undefined;
+    if (attendeeLimit !== undefined && (Number.isNaN(attendeeLimit) || attendeeLimit < 1)) {
+      setError("Max attendees must be a positive number.");
+      setIsSubmitting(false);
+      return;
+    }
 
     if (!eventDate) {
       setError("Date and time are required.");
@@ -50,6 +57,7 @@ export function AddEventDialog({ groupId }: AddEventDialogProps) {
       description: description || undefined,
       eventDate: new Date(eventDate).toISOString(),
       location: location || undefined,
+      attendeeLimit,
     });
 
     setIsSubmitting(false);
@@ -103,6 +111,17 @@ export function AddEventDialog({ groupId }: AddEventDialogProps) {
               id="event-location"
               name="location"
               placeholder="Venue or address"
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="event-attendee-limit">Max attendees (optional)</Label>
+            <Input
+              id="event-attendee-limit"
+              name="attendeeLimit"
+              type="number"
+              min={1}
+              placeholder="No limit"
               disabled={isSubmitting}
             />
           </div>

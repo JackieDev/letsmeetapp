@@ -3,11 +3,17 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getApprovedGroup, isUserGroupMember } from "@/db/queries/groups";
+import {
+  getApprovedGroup,
+  isUserGroupMember,
+  isUserBannedFromGroup,
+} from "@/db/queries/groups";
 import {
   getEventById,
+  getAttendeesByEventId,
   insertEvent,
   insertEventAttendee,
+  insertEventNote,
   isUserAttendingEvent,
   deleteEventAttendee,
   deleteEventById,
@@ -19,6 +25,7 @@ const createEventSchema = z.object({
   description: z.string().max(2000).optional(),
   eventDate: z.string().min(1, "Date is required"),
   location: z.string().max(500).optional(),
+  attendeeLimit: z.number().int().positive().optional(),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
@@ -73,6 +80,7 @@ export async function createEvent(
     eventDate,
     location: parsed.data.location ?? null,
     organizerId: userId,
+    attendeeLimit: parsed.data.attendeeLimit ?? null,
   });
 
   await insertEventAttendee({ eventId: event.id, userId });
@@ -110,6 +118,14 @@ export async function attendEvent(
     return { success: false, error: "Event not found." };
   }
 
+  const isBanned = await isUserBannedFromGroup(event.groupId, userId);
+  if (isBanned) {
+    return {
+      success: false,
+      error: "You have been banned from this group and cannot attend its events.",
+    };
+  }
+
   const isMember = await isUserGroupMember(event.groupId, userId);
   if (!isMember) {
     return {
@@ -123,8 +139,19 @@ export async function attendEvent(
     return { success: false, error: "You are already signed up for this event." };
   }
 
+  if (event.attendeeLimit != null) {
+    const attendees = await getAttendeesByEventId(parsed.data.eventId);
+    if (attendees.length >= event.attendeeLimit) {
+      return {
+        success: false,
+        error: "This event has reached its attendee limit.",
+      };
+    }
+  }
+
   await insertEventAttendee({ eventId: parsed.data.eventId, userId });
   revalidatePath(`/group/${event.groupId}`);
+  revalidatePath(`/group/${event.groupId}/event/${event.id}`);
 
   return { success: true };
 }
@@ -211,6 +238,55 @@ export async function deleteEvent(
 
   await deleteEventById(event.id);
   revalidatePath(`/group/${event.groupId}`);
+
+  return { success: true };
+}
+
+const addEventNoteSchema = z.object({
+  eventId: z.number().int().positive(),
+  content: z.string().min(1, "Note cannot be empty").max(2000),
+});
+
+export type AddEventNoteInput = z.infer<typeof addEventNoteSchema>;
+
+export type AddEventNoteResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function addEventNote(
+  input: AddEventNoteInput
+): Promise<AddEventNoteResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, error: "You must be signed in to add a note." };
+  }
+
+  const parsed = addEventNoteSchema.safeParse(input);
+  if (!parsed.success) {
+    const msg = parsed.error.flatten().fieldErrors.content?.[0] ?? "Invalid input.";
+    return { success: false, error: msg };
+  }
+
+  const event = await getEventById(parsed.data.eventId);
+  if (!event) {
+    return { success: false, error: "Event not found." };
+  }
+
+  const isAttendee = await isUserAttendingEvent(parsed.data.eventId, userId);
+  if (!isAttendee) {
+    return {
+      success: false,
+      error: "Only attendees can add notes to this event.",
+    };
+  }
+
+  await insertEventNote({
+    eventId: parsed.data.eventId,
+    userId,
+    content: parsed.data.content.trim(),
+  });
+  revalidatePath(`/group/${event.groupId}`);
+  revalidatePath(`/group/${event.groupId}/event/${event.id}`);
 
   return { success: true };
 }

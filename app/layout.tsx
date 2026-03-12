@@ -40,7 +40,7 @@ export default function RootLayout({
         <body className={`${poppins.variable} antialiased`}>
           <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex h-14 w-full items-center">
-              <div className="container flex max-w-screen-2xl flex-1 items-center pl-4">
+              <div className="flex flex-1 items-center pl-4">
                 <SignedIn>
                   <Link href="/dashboard" className="font-semibold hover:opacity-80 transition-opacity">
                     LetsMeet
@@ -52,15 +52,15 @@ export default function RootLayout({
                   </Link>
                 </SignedOut>
               </div>
-              <nav className="flex items-center gap-4 pr-4">
+              <nav className="flex items-center gap-4 pr-4 ml-auto">
                 <SignedOut>
                   <SignInButton mode="modal">
-                    <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+                    <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
                       Sign In
                     </button>
                   </SignInButton>
                   <SignUpButton mode="modal">
-                    <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2">
+                    <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
                       Sign Up
                     </button>
                   </SignUpButton>

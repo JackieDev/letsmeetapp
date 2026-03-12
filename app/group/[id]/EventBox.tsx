@@ -71,7 +71,9 @@ export function EventBox({
           {event.location ? ` · ${event.location}` : ""}
         </span>
         <span className="text-muted-foreground text-xs">
-          {attendeeCount} {attendeeCount === 1 ? "attendee" : "attendees"}
+          {event.attendeeLimit != null
+            ? `${attendeeCount} / ${event.attendeeLimit} ${event.attendeeLimit === 1 ? "attendee" : "attendees"}`
+            : `${attendeeCount} ${attendeeCount === 1 ? "attendee" : "attendees"}`}
         </span>
       </div>
       {isMember && (
@@ -102,7 +104,11 @@ export function EventBox({
                 size="sm"
                 variant="secondary"
                 onClick={handleSignUp}
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  (event.attendeeLimit != null &&
+                    attendeeCount >= event.attendeeLimit)
+                }
               >
                 {isSubmitting ? "Signing up…" : "Sign up"}
               </Button>
