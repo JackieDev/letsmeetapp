@@ -23,16 +23,16 @@ export default async function DashboardPage() {
       <SignedIn>
         <div className="flex w-full max-w-2xl flex-col gap-6">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-4xl font-semibold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground mt-1 text-lg">
               Welcome back. Manage your groups and events from here.
             </p>
           </div>
 
           <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
-            <h2 className="text-lg font-medium">Groups you&apos;re in</h2>
+            <h2 className="text-xl font-medium">Groups you&apos;re in</h2>
             {memberGroups.length === 0 ? (
-              <p className="text-muted-foreground mt-2 text-sm">
+              <p className="text-muted-foreground mt-2 text-base">
                 You&apos;re not in any groups yet. Search groups to find one to join.
               </p>
             ) : (
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
                 {memberGroups.map((group) => (
                   <li
                     key={group.id}
-                    className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3 text-sm"
+                    className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3 text-base"
                   >
                     {group.profilePicture ? (
                       <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
@@ -53,7 +53,7 @@ export default async function DashboardPage() {
                         />
                       </div>
                     ) : (
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-lg">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-xl">
                         —
                       </div>
                     )}
@@ -64,14 +64,14 @@ export default async function DashboardPage() {
                       >
                         {group.name}
                       </Link>
-                      <span className="text-muted-foreground ml-2 text-xs">
+                      <span className="text-muted-foreground ml-2 text-sm">
                         {group.city}
                         {group.ownerId === userId ? " · You own this group" : null}
                       </span>
                     </div>
                     <Link
                       href={`/group/${group.id}`}
-                      className={buttonVariants({ variant: "secondary", size: "sm" })}
+                      className={buttonVariants({ variant: "secondary", size: "sm", className: "scale-110" })}
                     >
                       View
                     </Link>
@@ -82,9 +82,9 @@ export default async function DashboardPage() {
           </div>
 
           <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
-            <h2 className="text-lg font-medium">Events you&apos;re signed up for</h2>
+            <h2 className="text-xl font-medium">Events you&apos;re signed up for</h2>
             {attendingEvents.length === 0 ? (
-              <p className="text-muted-foreground mt-2 text-sm">
+              <p className="text-muted-foreground mt-2 text-base">
                 You haven&apos;t signed up for any events yet. Browse groups to find events.
               </p>
             ) : (
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
                 {attendingEvents.map((event) => (
                   <li
                     key={event.id}
-                    className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background p-3 text-sm"
+                    className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background p-3 text-base"
                   >
                     <Link
                       href={`/group/${event.groupId}/event/${event.id}`}
@@ -100,18 +100,18 @@ export default async function DashboardPage() {
                     >
                       {event.name}
                     </Link>
-                    <span className="text-muted-foreground text-xs">
+                    <span className="text-muted-foreground text-sm">
                       {event.groupName}
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground text-base">
                       {new Date(event.eventDate).toLocaleString()}
                       {event.location ? ` · ${event.location}` : ""}
                     </span>
                     <Link
                       href={`/group/${event.groupId}/event/${event.id}`}
-                      className={buttonVariants({ variant: "link", size: "sm", className: "h-auto p-0 text-xs" })}
+                      className={buttonVariants({ variant: "secondary", size: "sm", className: "scale-110 w-fit self-end" })}
                     >
-                      View event →
+                      View event
                     </Link>
                   </li>
                 ))}
@@ -122,13 +122,13 @@ export default async function DashboardPage() {
       </SignedIn>
       <SignedOut>
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-6 text-center">
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <h1 className="text-3xl font-semibold">Dashboard</h1>
           <p className="text-muted-foreground max-w-sm">
             Sign in to access your dashboard and manage your groups and events.
           </p>
           <Link
             href="/"
-            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            className="text-lg font-medium text-primary underline-offset-4 hover:underline scale-110 inline-block"
           >
             Back to home
           </Link>

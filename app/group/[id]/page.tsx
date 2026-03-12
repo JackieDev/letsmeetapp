@@ -6,7 +6,9 @@ import { notFound, redirect } from "next/navigation";
 import {
   getApprovedGroup,
   getGroupMemberCount,
+  getGroupMembers,
   isUserGroupMember,
+  isUserBannedFromGroup,
 } from "@/db/queries/groups";
 import {
   getAttendeeCountsForGroupEvents,
@@ -16,7 +18,10 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AddEventDialog } from "./AddEventDialog";
+import { EditDisplayNameDialog } from "./EditDisplayNameDialog";
 import { EventBox } from "./EventBox";
+import { ManageMembersDialog } from "./ManageMembersDialog";
+import { JoinGroupButton } from "./JoinGroupButton";
 
 export default async function GroupPage({
   params,
@@ -39,14 +44,23 @@ export default async function GroupPage({
     notFound();
   }
 
-  const [events, memberCount, isMember, attendeeCounts, attendingEventIds] =
-    await Promise.all([
-      getEventsByGroupId(groupId),
-      getGroupMemberCount(groupId),
-      isUserGroupMember(groupId, userId),
-      getAttendeeCountsForGroupEvents(groupId),
-      getEventIdsUserAttendingInGroup(groupId, userId),
-    ]);
+  const [
+    events,
+    memberCount,
+    isMember,
+    attendeeCounts,
+    attendingEventIds,
+    members,
+    isBanned,
+  ] = await Promise.all([
+    getEventsByGroupId(groupId),
+    getGroupMemberCount(groupId),
+    isUserGroupMember(groupId, userId),
+    getAttendeeCountsForGroupEvents(groupId),
+    getEventIdsUserAttendingInGroup(groupId, userId),
+    getGroupMembers(groupId),
+    isUserBannedFromGroup(groupId, userId),
+  ]);
 
   let ownerName: string = "Unknown";
   try {
@@ -56,6 +70,10 @@ export default async function GroupPage({
   } catch {
     // keep "Unknown" if Clerk lookup fails
   }
+
+  const isOwner = userId === group.ownerId;
+  const currentMember = members.find((m) => m.userId === userId);
+  const canJoinGroup = !isOwner && !isMember && !isBanned;
 
   return (
     <div className="container max-w-screen-2xl flex flex-col items-center px-4 py-8">
@@ -102,7 +120,33 @@ export default async function GroupPage({
                   <span className="font-medium text-foreground">Members:</span> {memberCount}
                 </span>
               </dl>
+              {isMember && currentMember ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">
+                    Your name in this group:{" "}
+                    <span className="font-medium text-foreground">{currentMember.name}</span>
+                  </span>
+                  <EditDisplayNameDialog
+                    groupId={groupId}
+                    currentName={currentMember.name}
+                  />
+                </div>
+              ) : null}
             </div>
+            {isOwner ? (
+              <div className="mt-4 shrink-0 sm:mt-0">
+                <ManageMembersDialog
+                  groupId={groupId}
+                  ownerId={group.ownerId}
+                  currentUserId={userId}
+                  members={members}
+                />
+              </div>
+            ) : canJoinGroup ? (
+              <div className="mt-4 shrink-0 sm:mt-0">
+                <JoinGroupButton groupId={groupId} />
+              </div>
+            ) : null}
           </div>
         </div>
 

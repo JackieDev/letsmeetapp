@@ -25,6 +25,7 @@ export const eventsTable = pgTable("events", {
   eventDate: timestamp().notNull(),
   location: varchar({ length: 500 }),
   organizerId: varchar({ length: 255 }).notNull(), // Clerk user ID
+  attendeeLimit: integer(), // optional max attendees; null = no limit
   createdAt: timestamp().defaultNow().notNull(),
   updatedAt: timestamp().defaultNow().notNull(),
 });
@@ -34,6 +35,8 @@ export const groupMembersTable = pgTable("group_members", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   groupId: integer().notNull().references(() => groupsTable.id, { onDelete: "cascade" }),
   userId: varchar({ length: 255 }).notNull(), // Clerk user ID
+  name: varchar({ length: 255 }).notNull(), // Display name set when the user joins the group
+  isBanned: boolean().default(false).notNull(), // Whether this user is banned from the group
   role: memberRoleEnum().default("member").notNull(),
   joinedAt: timestamp().defaultNow().notNull(),
 });
@@ -45,4 +48,13 @@ export const eventAttendeesTable = pgTable("event_attendees", {
   userId: varchar({ length: 255 }).notNull(), // Clerk user ID
   comments: text(), // Optional comments from attendee
   signedUpAt: timestamp().defaultNow().notNull(),
+});
+
+// Event notes table — only attendees can add notes to an event
+export const eventNotesTable = pgTable("event_notes", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  eventId: integer().notNull().references(() => eventsTable.id, { onDelete: "cascade" }),
+  userId: varchar({ length: 255 }).notNull(), // Clerk user ID (must be attendee)
+  content: text().notNull(),
+  createdAt: timestamp().defaultNow().notNull(),
 });

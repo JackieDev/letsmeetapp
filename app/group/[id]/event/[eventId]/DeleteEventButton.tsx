@@ -40,6 +40,7 @@ export function DeleteEventButton({ groupId, eventId }: DeleteEventButtonProps) 
       <Button
         variant="destructive"
         size="sm"
+        className="w-fit"
         onClick={handleDelete}
         disabled={isSubmitting}
       >
