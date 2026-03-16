@@ -1,0 +1,1 @@
+ALTER TABLE "groups" ADD COLUMN "notifiedApproval" boolean DEFAULT false NOT NULL;

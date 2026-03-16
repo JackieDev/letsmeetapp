@@ -1,20 +1,25 @@
-import { integer, pgTable, varchar, text, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { integer, pgTable, varchar, text, boolean, timestamp, pgEnum, unique } from "drizzle-orm/pg-core";
 
 // Enum for group member roles
 export const memberRoleEnum = pgEnum("member_role", ["owner", "organizer", "member"]);
 
-// Groups table
-export const groupsTable = pgTable("groups", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  description: text(),
-  profilePicture: varchar({ length: 500 }), // URL/path to group profile picture
-  city: varchar({ length: 100 }).notNull(), // UK city/town
-  ownerId: varchar({ length: 255 }).notNull(), // Clerk user ID
-  isApproved: boolean().default(false).notNull(),
-  createdAt: timestamp().defaultNow().notNull(),
-  updatedAt: timestamp().defaultNow().notNull(),
-});
+// Groups table — name + city must be unique
+export const groupsTable = pgTable(
+  "groups",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    name: varchar({ length: 255 }).notNull(),
+    description: text(),
+    profilePicture: varchar({ length: 500 }), // URL/path to group profile picture
+    city: varchar({ length: 100 }).notNull(), // UK city/town
+    ownerId: varchar({ length: 255 }).notNull(), // Clerk user ID
+    isApproved: boolean().default(false).notNull(),
+    notifiedApproval: boolean().default(false).notNull(),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (t) => [unique("groups_name_city_unique").on(t.name, t.city)]
+);
 
 // Events table
 export const eventsTable = pgTable("events", {

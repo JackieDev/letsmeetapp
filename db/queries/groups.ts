@@ -1,4 +1,4 @@
-import { and, eq, ilike, or, inArray, sql } from "drizzle-orm";
+import { and, eq, ilike, ne, or, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { groupMembersTable, groupsTable } from "@/db/schema";
 
@@ -26,6 +26,29 @@ export async function getApprovedGroup(id: number) {
     .select()
     .from(groupsTable)
     .where(and(eq(groupsTable.id, id), eq(groupsTable.isApproved, true)));
+  return group ?? null;
+}
+
+/**
+ * Get a group by exact name and city. Returns null if none found.
+ * Optionally exclude a group id (e.g. when updating that group).
+ */
+export async function getGroupByNameAndCity(
+  name: string,
+  city: string,
+  excludeId?: number
+): Promise<Group | null> {
+  const conditions = [
+    eq(groupsTable.name, name),
+    eq(groupsTable.city, city),
+  ];
+  if (excludeId !== undefined) {
+    conditions.push(ne(groupsTable.id, excludeId));
+  }
+  const [group] = await db
+    .select()
+    .from(groupsTable)
+    .where(and(...conditions));
   return group ?? null;
 }
 

@@ -47,6 +47,46 @@ export async function sendNewGroupApprovalEmail(group: NewGroupDetails): Promise
   }
 }
 
+export type ReportIssueDetails = {
+  email: string;
+  message: string;
+  userName: string | null;
+  userId: string | null;
+};
+
+/**
+ * Sends a "Report an issue" email to the same recipient as group approvals.
+ * Does not throw; logs errors so the UI can show a generic message.
+ */
+export async function sendReportIssueEmail(report: ReportIssueDetails): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY not set; skipping report issue email.");
+    return;
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [APPROVAL_RECIPIENT],
+      subject: `[LetsMeet] Report an issue from ${escapeHtml(report.email)}`,
+      html: `
+        <h2>Report an issue</h2>
+        <p><strong>From email:</strong> ${escapeHtml(report.email)}</p>
+        <p><strong>User name:</strong> ${report.userName ? escapeHtml(report.userName) : "(not signed in)"}</p>
+        <p><strong>User ID (Clerk):</strong> ${report.userId ? escapeHtml(report.userId) : "(not signed in)"}</p>
+        <p><strong>Message:</strong></p>
+        <p>${escapeHtml(report.message)}</p>
+      `.replace(/\n\s+/g, "\n").trim(),
+    });
+
+    if (error) {
+      console.error("[email] Resend error:", error);
+    }
+  } catch (err) {
+    console.error("[email] Failed to send report issue email:", err);
+  }
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
