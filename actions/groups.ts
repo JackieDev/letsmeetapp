@@ -7,6 +7,7 @@ import { sendNewGroupApprovalEmail } from "@/lib/email";
 import {
   addGroupMember,
   getGroup,
+  getGroupByNameAndCity,
   insertGroup,
   isUserGroupMember,
   removeGroupMemberByUserId,
@@ -44,6 +45,15 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
   }
 
   const { name, description, city } = parsed.data;
+
+  const existing = await getGroupByNameAndCity(name, city);
+  if (existing) {
+    return {
+      success: false,
+      error: "A group with this name already exists in this city.",
+    };
+  }
+
   const group = await insertGroup({
     name,
     description: description ?? null,

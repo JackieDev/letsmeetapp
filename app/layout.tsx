@@ -10,6 +10,7 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
+import { ReportIssueButton } from "@/components/ReportIssueButton";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import "./globals.css";
@@ -53,6 +54,7 @@ export default function RootLayout({
                 </SignedOut>
               </div>
               <nav className="flex items-center gap-4 pr-4 ml-auto">
+                <ReportIssueButton />
                 <SignedOut>
                   <SignInButton mode="modal">
                     <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
