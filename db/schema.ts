@@ -21,6 +21,20 @@ export const groupsTable = pgTable(
   (t) => [unique("groups_name_city_unique").on(t.name, t.city)]
 );
 
+// Members table — stores core profile info for users (keyed by Clerk user ID)
+export const membersTable = pgTable(
+  "members",
+  {
+    userId: varchar({ length: 255 }).primaryKey(), // Clerk user ID
+    email: varchar({ length: 255 }).notNull(),
+    name: varchar({ length: 255 }), // Display name for the user (global)
+    profilePicture: varchar({ length: 500 }),
+    city: varchar({ length: 100 }),
+    interests: text(), // free-form interests/bio field
+  },
+  (t) => [unique("members_email_unique").on(t.email)]
+);
+
 // Events table
 export const eventsTable = pgTable("events", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -40,7 +54,6 @@ export const groupMembersTable = pgTable("group_members", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   groupId: integer().notNull().references(() => groupsTable.id, { onDelete: "cascade" }),
   userId: varchar({ length: 255 }).notNull(), // Clerk user ID
-  name: varchar({ length: 255 }).notNull(), // Display name set when the user joins the group
   isBanned: boolean().default(false).notNull(), // Whether this user is banned from the group
   role: memberRoleEnum().default("member").notNull(),
   joinedAt: timestamp().defaultNow().notNull(),
@@ -62,4 +75,14 @@ export const eventNotesTable = pgTable("event_notes", {
   userId: varchar({ length: 255 }).notNull(), // Clerk user ID (must be attendee)
   content: text().notNull(),
   createdAt: timestamp().defaultNow().notNull(),
+});
+
+// Direct messages between users
+export const messagesTable = pgTable("messages", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  senderUserId: varchar({ length: 255 }).notNull(), // Clerk user ID
+  recipientUserId: varchar({ length: 255 }).notNull(), // Clerk user ID
+  body: text().notNull(),
+  createdAt: timestamp().defaultNow().notNull(),
+  readAt: timestamp(),
 });

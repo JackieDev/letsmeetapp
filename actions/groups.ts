@@ -310,3 +310,48 @@ export async function joinGroup(input: JoinGroupInput): Promise<JoinGroupResult>
 
   return { success: true };
 }
+
+const leaveGroupSchema = z.object({
+  groupId: z.number().int().positive(),
+});
+
+export type LeaveGroupInput = z.infer<typeof leaveGroupSchema>;
+
+export type LeaveGroupResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function leaveGroup(input: LeaveGroupInput): Promise<LeaveGroupResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, error: "You must be signed in to leave a group." };
+  }
+
+  const parsed = leaveGroupSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input." };
+  }
+
+  const group = await getGroup(parsed.data.groupId);
+  if (!group) {
+    return { success: false, error: "Group not found." };
+  }
+
+  if (group.ownerId === userId) {
+    return {
+      success: false,
+      error: "You cannot leave a group you own. Delete the group or transfer ownership first.",
+    };
+  }
+
+  const isMember = await isUserGroupMember(parsed.data.groupId, userId);
+  if (!isMember) {
+    return { success: false, error: "You are not a member of this group." };
+  }
+
+  await removeGroupMemberByUserId(parsed.data.groupId, userId);
+  revalidatePath(`/group/${parsed.data.groupId}`);
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
