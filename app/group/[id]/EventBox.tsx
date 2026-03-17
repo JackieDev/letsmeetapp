@@ -18,6 +18,7 @@ type EventBoxProps = {
   isMember: boolean;
   isAttending: boolean;
   attendeeCount: number;
+  isPast?: boolean;
 };
 
 export function EventBox({
@@ -26,6 +27,7 @@ export function EventBox({
   isMember,
   isAttending,
   attendeeCount,
+  isPast = false,
 }: EventBoxProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +78,7 @@ export function EventBox({
             : `${attendeeCount} ${attendeeCount === 1 ? "attendee" : "attendees"}`}
         </span>
       </div>
-      {isMember && (
+      {isMember && !isPast && (
         <div className="flex flex-wrap items-center gap-2">
           {isAttending ? (
             <>

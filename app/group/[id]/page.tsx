@@ -18,10 +18,10 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AddEventDialog } from "./AddEventDialog";
-import { EditDisplayNameDialog } from "./EditDisplayNameDialog";
 import { EventBox } from "./EventBox";
 import { ManageMembersDialog } from "./ManageMembersDialog";
 import { JoinGroupButton } from "./JoinGroupButton";
+import { LeaveGroupButton } from "./LeaveGroupButton";
 
 export default async function GroupPage({
   params,
@@ -75,6 +75,12 @@ export default async function GroupPage({
   const currentMember = members.find((m) => m.userId === userId);
   const canJoinGroup = !isOwner && !isMember && !isBanned;
 
+  const now = new Date();
+  const upcomingEvents = events.filter((e) => new Date(e.eventDate) >= now);
+  const pastEvents = [...events.filter((e) => new Date(e.eventDate) < now)].sort(
+    (a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime()
+  );
+
   return (
     <div className="container max-w-screen-2xl flex flex-col items-center px-4 py-8">
       <div className="flex w-full max-w-2xl flex-col gap-6">
@@ -120,18 +126,6 @@ export default async function GroupPage({
                   <span className="font-medium text-foreground">Members:</span> {memberCount}
                 </span>
               </dl>
-              {isMember && currentMember ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">
-                    Your name in this group:{" "}
-                    <span className="font-medium text-foreground">{currentMember.name}</span>
-                  </span>
-                  <EditDisplayNameDialog
-                    groupId={groupId}
-                    currentName={currentMember.name}
-                  />
-                </div>
-              ) : null}
             </div>
             {isOwner ? (
               <div className="mt-4 shrink-0 sm:mt-0">
@@ -146,22 +140,26 @@ export default async function GroupPage({
               <div className="mt-4 shrink-0 sm:mt-0">
                 <JoinGroupButton groupId={groupId} />
               </div>
+            ) : isMember && !isOwner ? (
+              <div className="mt-4 shrink-0 sm:mt-0">
+                <LeaveGroupButton groupId={groupId} />
+              </div>
             ) : null}
           </div>
         </div>
 
         <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-medium">Events ({events.length})</h2>
+            <h2 className="text-lg font-medium">Upcoming events ({upcomingEvents.length})</h2>
             {userId === group.ownerId ? (
               <AddEventDialog groupId={groupId} />
             ) : null}
           </div>
-          {events.length === 0 ? (
-            <p className="text-muted-foreground mt-2 text-sm">No events yet.</p>
+          {upcomingEvents.length === 0 ? (
+            <p className="text-muted-foreground mt-2 text-sm">No upcoming events.</p>
           ) : (
             <ul className="mt-3 space-y-2">
-              {events.map((event) => (
+              {upcomingEvents.map((event) => (
                 <EventBox
                   key={event.id}
                   event={event}
@@ -174,6 +172,25 @@ export default async function GroupPage({
             </ul>
           )}
         </div>
+
+        {pastEvents.length > 0 ? (
+          <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+            <h2 className="text-lg font-medium">Past events ({pastEvents.length})</h2>
+            <ul className="mt-3 space-y-2">
+              {pastEvents.map((event) => (
+                <EventBox
+                  key={event.id}
+                  event={event}
+                  groupId={groupId}
+                  isMember={isMember}
+                  isAttending={attendingEventIds.has(event.id)}
+                  attendeeCount={attendeeCounts.get(event.id) ?? 0}
+                  isPast
+                />
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </div>
   );
