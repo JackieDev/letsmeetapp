@@ -49,6 +49,11 @@ export default async function DashboardPage() {
     return a.name.localeCompare(b.name);
   });
 
+  const welcomeName =
+    user.firstName?.trim() ||
+    user.emailAddresses?.[0]?.emailAddress ||
+    "there";
+
   return (
     <div className="container max-w-screen-2xl flex flex-col items-center px-4 py-8">
       <SignedIn>
@@ -56,7 +61,7 @@ export default async function DashboardPage() {
           <div>
             <h1 className="text-4xl font-semibold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground mt-1 text-lg">
-              Welcome back. Manage your groups and events from here.
+              Welcome {welcomeName}. Manage your groups and events from here.
             </p>
           </div>
 

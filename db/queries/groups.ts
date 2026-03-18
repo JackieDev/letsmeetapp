@@ -1,6 +1,6 @@
 import { and, eq, ilike, ne, or, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { groupMembersTable, groupsTable } from "@/db/schema";
+import { groupMembersTable, groupsTable, membersTable } from "@/db/schema";
 
 /** Escape % and _ for safe use in ilike (treat as literal). */
 function escapeIlike(value: string): string {
@@ -60,7 +60,8 @@ export async function getGroupMemberCount(groupId: number) {
     .where(
       and(
         eq(groupMembersTable.groupId, groupId),
-        eq(groupMembersTable.isBanned, false)
+        eq(groupMembersTable.isBanned, false),
+        eq(groupMembersTable.isMemberApproved, true)
       )
     );
   return row?.count ?? 0;
@@ -83,7 +84,8 @@ export async function isUserGroupMember(groupId: number, userId: string) {
       and(
         eq(groupMembersTable.groupId, groupId),
         eq(groupMembersTable.userId, userId),
-        eq(groupMembersTable.isBanned, false)
+        eq(groupMembersTable.isBanned, false),
+        eq(groupMembersTable.isMemberApproved, true)
       )
     );
   return !!member;
@@ -110,7 +112,8 @@ export async function getGroupsUserIsMemberOf(userId: string) {
     .where(
       and(
         eq(groupMembersTable.userId, userId),
-        eq(groupMembersTable.isBanned, false)
+        eq(groupMembersTable.isBanned, false),
+        eq(groupMembersTable.isMemberApproved, true)
       )
     );
   const memberGroupIds = memberRows.map((r) => r.groupId);
@@ -157,11 +160,14 @@ export async function addGroupMember(data: {
   userId: string;
   name: string;
   role: "owner" | "organizer" | "member";
+  isMemberApproved?: boolean;
 }) {
+  const desiredIsMemberApproved = data.isMemberApproved ?? true;
   const [existing] = await db
     .select({
       id: groupMembersTable.id,
       isBanned: groupMembersTable.isBanned,
+      isMemberApproved: groupMembersTable.isMemberApproved,
     })
     .from(groupMembersTable)
     .where(
@@ -178,10 +184,62 @@ export async function addGroupMember(data: {
 
   // If they already have a non-banned membership row, treat as idempotent.
   if (existing && !existing.isBanned) {
+    // Only allow moving from pending -> approved. Never downgrade an approved member back to pending.
+    if (desiredIsMemberApproved && !existing.isMemberApproved) {
+      await db
+        .update(groupMembersTable)
+        .set({ isMemberApproved: true })
+        .where(
+          and(
+            eq(groupMembersTable.groupId, data.groupId),
+            eq(groupMembersTable.userId, data.userId)
+          )
+        );
+    }
     return;
   }
 
   await db.insert(groupMembersTable).values(data);
+}
+
+/** Approve a pending membership request. Owner-only. */
+export async function approveGroupMemberByUserId(
+  groupId: number,
+  userId: string
+) {
+  await db
+    .update(groupMembersTable)
+    .set({ isMemberApproved: true, isBanned: false })
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.userId, userId)
+      )
+    );
+}
+
+/** Update per-group member-approval requirement, and optionally auto-approve pending requests. */
+export async function setGroupMemberApprovalRequirement(
+  groupId: number,
+  requiresMemberApproval: boolean
+) {
+  await db
+    .update(groupsTable)
+    .set({ requiresMemberApproval })
+    .where(eq(groupsTable.id, groupId));
+
+  // If the owner disables approvals, promote any pending (non-banned) requests.
+  if (!requiresMemberApproval) {
+    await db
+      .update(groupMembersTable)
+      .set({ isMemberApproved: true })
+      .where(
+        and(
+          eq(groupMembersTable.groupId, groupId),
+          eq(groupMembersTable.isBanned, false)
+        )
+      );
+  }
 }
 
 /** Whether the user has a banned membership row for this group. */
@@ -204,6 +262,39 @@ export async function getGroupMembers(groupId: number): Promise<GroupMember[]> {
     .select()
     .from(groupMembersTable)
     .where(eq(groupMembersTable.groupId, groupId))
+    .orderBy(groupMembersTable.joinedAt);
+}
+
+export type GroupMemberProfile = {
+  userId: string;
+  name: string;
+  profilePicture: string | null;
+  role: "owner" | "organizer" | "member";
+};
+
+/**
+ * Get approved, non-banned group members with profile pictures for display.
+ * Pending members are intentionally excluded.
+ */
+export async function getApprovedGroupMembersWithProfiles(
+  groupId: number
+): Promise<GroupMemberProfile[]> {
+  return db
+    .select({
+      userId: groupMembersTable.userId,
+      name: groupMembersTable.name,
+      profilePicture: membersTable.profilePicture,
+      role: groupMembersTable.role,
+    })
+    .from(groupMembersTable)
+    .leftJoin(membersTable, eq(membersTable.userId, groupMembersTable.userId))
+    .where(
+      and(
+        eq(groupMembersTable.groupId, groupId),
+        eq(groupMembersTable.isBanned, false),
+        eq(groupMembersTable.isMemberApproved, true)
+      )
+    )
     .orderBy(groupMembersTable.joinedAt);
 }
 

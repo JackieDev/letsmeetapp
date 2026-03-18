@@ -15,6 +15,8 @@ export const groupsTable = pgTable(
     ownerId: varchar({ length: 255 }).notNull(), // Clerk user ID
     isApproved: boolean().default(false).notNull(),
     notifiedApproval: boolean().default(false).notNull(),
+    // If true, new join requests are created as "pending" until the group owner approves them.
+    requiresMemberApproval: boolean().default(false).notNull(),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp().defaultNow().notNull(),
   },
@@ -54,7 +56,11 @@ export const groupMembersTable = pgTable("group_members", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   groupId: integer().notNull().references(() => groupsTable.id, { onDelete: "cascade" }),
   userId: varchar({ length: 255 }).notNull(), // Clerk user ID
+  // Display name for the member inside this group (captured from Clerk on join).
+  name: varchar({ length: 255 }).notNull(),
   isBanned: boolean().default(false).notNull(), // Whether this user is banned from the group
+  // When the group requires approval, new members start as not approved.
+  isMemberApproved: boolean().default(true).notNull(),
   role: memberRoleEnum().default("member").notNull(),
   joinedAt: timestamp().defaultNow().notNull(),
 });

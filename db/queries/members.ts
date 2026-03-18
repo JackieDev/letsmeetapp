@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { groupMembersTable, membersTable } from "@/db/schema";
 

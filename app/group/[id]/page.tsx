@@ -7,6 +7,7 @@ import {
   getApprovedGroup,
   getGroupMemberCount,
   getGroupMembers,
+  getApprovedGroupMembersWithProfiles,
   isUserGroupMember,
   isUserBannedFromGroup,
 } from "@/db/queries/groups";
@@ -22,6 +23,7 @@ import { EventBox } from "./EventBox";
 import { ManageMembersDialog } from "./ManageMembersDialog";
 import { JoinGroupButton } from "./JoinGroupButton";
 import { LeaveGroupButton } from "./LeaveGroupButton";
+import { ViewGroupMembersDialog } from "./ViewGroupMembersDialog";
 
 export default async function GroupPage({
   params,
@@ -51,6 +53,7 @@ export default async function GroupPage({
     attendeeCounts,
     attendingEventIds,
     members,
+    approvedMembers,
     isBanned,
   ] = await Promise.all([
     getEventsByGroupId(groupId),
@@ -59,6 +62,7 @@ export default async function GroupPage({
     getAttendeeCountsForGroupEvents(groupId),
     getEventIdsUserAttendingInGroup(groupId, userId),
     getGroupMembers(groupId),
+    getApprovedGroupMembersWithProfiles(groupId),
     isUserBannedFromGroup(groupId, userId),
   ]);
 
@@ -72,8 +76,13 @@ export default async function GroupPage({
   }
 
   const isOwner = userId === group.ownerId;
-  const currentMember = members.find((m) => m.userId === userId);
-  const canJoinGroup = !isOwner && !isMember && !isBanned;
+  const currentMembership = members.find((m) => m.userId === userId) ?? null;
+  const isPendingMembership =
+    !!currentMembership &&
+    !currentMembership.isBanned &&
+    !currentMembership.isMemberApproved;
+
+  const canJoinGroup = !isOwner && !isMember && !isBanned && !isPendingMembership;
 
   const now = new Date();
   const upcomingEvents = events.filter((e) => new Date(e.eventDate) >= now);
@@ -128,20 +137,29 @@ export default async function GroupPage({
               </dl>
             </div>
             {isOwner ? (
-              <div className="mt-4 shrink-0 sm:mt-0">
+              <div className="mt-4 flex shrink-0 flex-col gap-2 sm:mt-0 sm:flex-col">
+                <ViewGroupMembersDialog members={approvedMembers} />
                 <ManageMembersDialog
                   groupId={groupId}
                   ownerId={group.ownerId}
                   currentUserId={userId}
                   members={members}
+                  requiresMemberApproval={group.requiresMemberApproval}
                 />
               </div>
             ) : canJoinGroup ? (
               <div className="mt-4 shrink-0 sm:mt-0">
                 <JoinGroupButton groupId={groupId} />
               </div>
+            ) : isPendingMembership ? (
+              <div className="mt-4 shrink-0 sm:mt-0">
+                <p className="text-muted-foreground text-sm">
+                  Your request to join is pending approval.
+                </p>
+              </div>
             ) : isMember && !isOwner ? (
               <div className="mt-4 shrink-0 sm:mt-0">
+                <ViewGroupMembersDialog members={approvedMembers} />
                 <LeaveGroupButton groupId={groupId} />
               </div>
             ) : null}
