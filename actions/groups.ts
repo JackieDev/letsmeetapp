@@ -1,15 +1,21 @@
 "use server";
 
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { sendNewGroupApprovalEmail } from "@/lib/email";
+import {
+  sendGroupMemberJoinRequestEmail,
+  sendNewGroupApprovalEmail,
+} from "@/lib/email";
 import {
   addGroupMember,
   getGroup,
   getGroupByNameAndCity,
+  getGroupMemberByUserId,
   insertGroup,
   isUserGroupMember,
+  approveGroupMemberByUserId,
+  setGroupMemberApprovalRequirement as setGroupMemberApprovalRequirementDb,
   removeGroupMemberByUserId,
   setGroupMemberBannedStatus,
   updateGroupMemberName,
@@ -277,17 +283,41 @@ export async function joinGroup(input: JoinGroupInput): Promise<JoinGroupResult>
     return { success: false, error: "You are already the owner of this group." };
   }
 
-  const isMember = await isUserGroupMember(parsed.data.groupId, userId);
-  if (isMember) {
-    return { success: false, error: "You are already a member of this group." };
-  }
-
   const isBanned = await isUserBannedFromGroup(parsed.data.groupId, userId);
   if (isBanned) {
     return {
       success: false,
       error: "You have been banned from this group and cannot join.",
     };
+  }
+
+  const isMember = await isUserGroupMember(parsed.data.groupId, userId);
+  if (isMember) {
+    return { success: false, error: "You are already a member of this group." };
+  }
+
+  const existingMembership = await getGroupMemberByUserId(
+    parsed.data.groupId,
+    userId
+  );
+
+  if (existingMembership && !existingMembership.isBanned) {
+    if (existingMembership.isMemberApproved) {
+      return { success: false, error: "You are already a member of this group." };
+    }
+
+    if (group.requiresMemberApproval) {
+      return {
+        success: false,
+        error: "Your request is pending approval by the group owner.",
+      };
+    }
+
+    // Owner disabled approvals: promote this membership.
+    await approveGroupMemberByUserId(parsed.data.groupId, userId);
+    revalidatePath(`/group/${parsed.data.groupId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
   }
 
   const user = await currentUser();
@@ -298,12 +328,130 @@ export async function joinGroup(input: JoinGroupInput): Promise<JoinGroupResult>
     user?.emailAddresses?.[0]?.emailAddress ||
     "Group member";
 
+  const shouldRequireApproval = group.requiresMemberApproval;
   await addGroupMember({
     groupId: parsed.data.groupId,
     userId,
     name: memberName.slice(0, 255),
     role: "member",
+    isMemberApproved: !shouldRequireApproval,
   });
+
+  if (shouldRequireApproval) {
+    // Notify the group owner that a join request is pending.
+    try {
+      const ownerClient = await clerkClient();
+      const owner = await ownerClient.users.getUser(group.ownerId);
+      const toEmail = owner.primaryEmailAddress?.emailAddress;
+
+      if (toEmail) {
+        await sendGroupMemberJoinRequestEmail({
+          toEmail,
+          requesterName: memberName.slice(0, 255),
+          requesterId: userId,
+          groupId: group.id,
+          groupName: group.name,
+          groupCity: group.city,
+        });
+      }
+    } catch (err) {
+      // Email failures should not block join requests.
+      console.error("[joinGroup] Failed to notify owner:", err);
+    }
+  }
+
+  revalidatePath(`/group/${parsed.data.groupId}`);
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
+
+const approveGroupMemberSchema = z.object({
+  groupId: z.number().int().positive(),
+  userId: z.string().min(1),
+});
+
+export type ApproveGroupMemberInput = z.infer<typeof approveGroupMemberSchema>;
+
+export type ApproveGroupMemberResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function approveGroupMember(
+  input: ApproveGroupMemberInput
+): Promise<ApproveGroupMemberResult> {
+  const { userId: currentOwnerId } = await auth();
+  if (!currentOwnerId) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const parsed = approveGroupMemberSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input." };
+  }
+
+  const group = await getGroup(parsed.data.groupId);
+  if (!group) {
+    return { success: false, error: "Group not found." };
+  }
+
+  if (group.ownerId !== currentOwnerId) {
+    return {
+      success: false,
+      error: "Only the group owner can approve members.",
+    };
+  }
+
+  if (parsed.data.userId === group.ownerId) {
+    return { success: false, error: "The owner is already approved." };
+  }
+
+  await approveGroupMemberByUserId(parsed.data.groupId, parsed.data.userId);
+  revalidatePath(`/group/${parsed.data.groupId}`);
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
+
+const setGroupMemberApprovalRequirementSchema = z.object({
+  groupId: z.number().int().positive(),
+  requiresMemberApproval: z.boolean(),
+});
+
+export type SetGroupMemberApprovalRequirementInput = z.infer<
+  typeof setGroupMemberApprovalRequirementSchema
+>;
+
+export type SetGroupMemberApprovalRequirementResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function setGroupMemberApprovalRequirement(
+  input: SetGroupMemberApprovalRequirementInput
+): Promise<SetGroupMemberApprovalRequirementResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const parsed = setGroupMemberApprovalRequirementSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input." };
+  }
+
+  const group = await getGroup(parsed.data.groupId);
+  if (!group) {
+    return { success: false, error: "Group not found." };
+  }
+
+  if (group.ownerId !== userId) {
+    return { success: false, error: "Only the group owner can update this setting." };
+  }
+
+  await setGroupMemberApprovalRequirementDb(
+    parsed.data.groupId,
+    parsed.data.requiresMemberApproval
+  );
 
   revalidatePath(`/group/${parsed.data.groupId}`);
   revalidatePath("/dashboard");

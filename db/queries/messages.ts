@@ -91,7 +91,8 @@ export async function searchSharedGroupMembersByName(
     .where(
       and(
         eq(groupMembersTable.userId, currentUserId),
-        eq(groupMembersTable.isBanned, false)
+        eq(groupMembersTable.isBanned, false),
+        eq(groupMembersTable.isMemberApproved, true)
       )
     );
 
@@ -106,7 +107,8 @@ export async function searchSharedGroupMembersByName(
       and(
         inArray(groupMembersTable.groupId, groupIds),
         ne(groupMembersTable.userId, currentUserId),
-        eq(groupMembersTable.isBanned, false)
+        eq(groupMembersTable.isBanned, false),
+        eq(groupMembersTable.isMemberApproved, true)
       )
     );
 

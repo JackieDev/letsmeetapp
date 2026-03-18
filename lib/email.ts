@@ -87,6 +87,64 @@ export async function sendReportIssueEmail(report: ReportIssueDetails): Promise<
   }
 }
 
+export type GroupMemberJoinRequestEmailDetails = {
+  toEmail: string;
+  requesterName: string;
+  requesterId: string;
+  groupId: number;
+  groupName: string;
+  groupCity: string;
+};
+
+/**
+ * Sends an email to the group owner when someone requests to join.
+ * Does not throw; logs errors so the join flow can still succeed.
+ */
+export async function sendGroupMemberJoinRequestEmail(
+  details: GroupMemberJoinRequestEmailDetails
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY not set; skipping join request email.");
+    return;
+  }
+
+  if (!details.toEmail) {
+    console.warn("[email] Missing toEmail; skipping join request email.");
+    return;
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [details.toEmail],
+      subject: `[LetsMeet] Join request: ${details.groupName}`,
+      html: `
+        <h2>New join request</h2>
+        <p>
+          <strong>${escapeHtml(details.requesterName)}</strong>
+          wants to join your group
+          <strong>${escapeHtml(details.groupName)}</strong>
+          (${escapeHtml(details.groupCity)}).
+        </p>
+        <p><strong>Group ID:</strong> ${details.groupId}</p>
+        <p><strong>Requester ID (Clerk):</strong> ${escapeHtml(details.requesterId)}</p>
+        <p>
+          Open the app to review the request and approve the member.
+        </p>
+        <p style="color: #666; font-size: 12px;">
+          This is an automated email from LetsMeet.
+        </p>
+      `.replace(/\n\s+/g, "\n").trim(),
+    });
+
+    if (error) {
+      console.error("[email] Resend error:", error);
+    }
+  } catch (err) {
+    console.error("[email] Failed to send join request email:", err);
+  }
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
