@@ -36,22 +36,8 @@ export async function getMessagesForUser(userId: string): Promise<MessageWithUse
       readAt: messagesTable.readAt,
       senderUserId: messagesTable.senderUserId,
       recipientUserId: messagesTable.recipientUserId,
-      senderName: membersTable.name,
-      senderEmail: membersTable.email,
-      recipientName: membersTable.name,
-      recipientEmail: membersTable.email,
     })
     .from(messagesTable)
-    .leftJoin(
-      membersTable,
-      or(
-        and(
-          eq(messagesTable.senderUserId, membersTable.userId),
-          eq(messagesTable.recipientUserId, membersTable.userId)
-        ),
-        eq(messagesTable.senderUserId, membersTable.userId)
-      )
-    )
     .where(
       or(
         eq(messagesTable.senderUserId, userId),
@@ -60,8 +46,25 @@ export async function getMessagesForUser(userId: string): Promise<MessageWithUse
     )
     .orderBy(desc(messagesTable.createdAt));
 
-  // The join logic above is conservative; to avoid over-complication, just
-  // fall back to user IDs when names/emails are ambiguous.
+  const participantIds = Array.from(
+    new Set(rows.flatMap((row) => [row.senderUserId, row.recipientUserId]))
+  );
+
+  const participants = participantIds.length
+    ? await db
+        .select({
+          userId: membersTable.userId,
+          name: membersTable.name,
+          email: membersTable.email,
+        })
+        .from(membersTable)
+        .where(inArray(membersTable.userId, participantIds))
+    : [];
+
+  const participantById = new Map(
+    participants.map((participant) => [participant.userId, participant])
+  );
+
   return rows.map((row) => ({
     id: row.id,
     body: row.body,
@@ -69,10 +72,11 @@ export async function getMessagesForUser(userId: string): Promise<MessageWithUse
     readAt: row.readAt,
     senderUserId: row.senderUserId,
     recipientUserId: row.recipientUserId,
-    senderName: row.senderName ?? null,
-    senderEmail: row.senderEmail ?? row.senderUserId,
-    recipientName: row.recipientName ?? null,
-    recipientEmail: row.recipientEmail ?? row.recipientUserId,
+    senderName: participantById.get(row.senderUserId)?.name ?? null,
+    senderEmail: participantById.get(row.senderUserId)?.email ?? row.senderUserId,
+    recipientName: participantById.get(row.recipientUserId)?.name ?? null,
+    recipientEmail:
+      participantById.get(row.recipientUserId)?.email ?? row.recipientUserId,
   }));
 }
 

@@ -96,6 +96,15 @@ export async function getGroups() {
   return db.select().from(groupsTable);
 }
 
+/** Get pending groups that still need admin approval. */
+export async function getPendingGroupsForApproval() {
+  return db
+    .select()
+    .from(groupsTable)
+    .where(eq(groupsTable.isApproved, false))
+    .orderBy(groupsTable.createdAt);
+}
+
 /** Get all groups owned by a user. */
 export async function getGroupsByOwnerId(ownerId: string) {
   return db
@@ -389,6 +398,22 @@ export async function updateGroup(
   await db
     .update(groupsTable)
     .set({ ...data, updatedAt: new Date() })
+    .where(eq(groupsTable.id, id));
+}
+
+/** Approve a group by id. */
+export async function approveGroupById(id: number) {
+  await db
+    .update(groupsTable)
+    .set({ isApproved: true, updatedAt: new Date() })
+    .where(eq(groupsTable.id, id));
+}
+
+/** Mark that the owner has been notified about approval. */
+export async function markGroupApprovalNotified(id: number) {
+  await db
+    .update(groupsTable)
+    .set({ notifiedApproval: true, updatedAt: new Date() })
     .where(eq(groupsTable.id, id));
 }
 

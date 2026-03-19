@@ -3,7 +3,7 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const APPROVAL_RECIPIENT = "jacqueline@letsmeet.uk";
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "LetsMeet <onboarding@resend.dev>";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "jacqueline@letsmeet.uk";
 
 export type NewGroupDetails = {
   id: number;
@@ -96,6 +96,12 @@ export type GroupMemberJoinRequestEmailDetails = {
   groupCity: string;
 };
 
+export type GroupApprovedOwnerEmailDetails = {
+  toEmail: string;
+  groupName: string;
+  groupCity: string;
+};
+
 /**
  * Sends an email to the group owner when someone requests to join.
  * Does not throw; logs errors so the join flow can still succeed.
@@ -142,6 +148,52 @@ export async function sendGroupMemberJoinRequestEmail(
     }
   } catch (err) {
     console.error("[email] Failed to send join request email:", err);
+  }
+}
+
+/**
+ * Sends an email to a group owner when their new group has been approved.
+ * Does not throw; logs errors so the approval flow can still succeed.
+ */
+export async function sendGroupApprovedOwnerEmail(
+  details: GroupApprovedOwnerEmailDetails
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY not set; skipping group approved email.");
+    return;
+  }
+
+  if (!details.toEmail) {
+    console.warn("[email] Missing toEmail; skipping group approved email.");
+    return;
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [details.toEmail],
+      subject: `[LetsMeet] Your group was approved: ${details.groupName}`,
+      html: `
+        <h2>Your group is now live</h2>
+        <p>
+          Great news - your group
+          <strong>${escapeHtml(details.groupName)}</strong>
+          (${escapeHtml(details.groupCity)}) has been approved.
+        </p>
+        <p>
+          Other users can now find and join your group.
+        </p>
+        <p style="color: #666; font-size: 12px;">
+          This is an automated email from LetsMeet.
+        </p>
+      `.replace(/\n\s+/g, "\n").trim(),
+    });
+
+    if (error) {
+      console.error("[email] Resend error:", error);
+    }
+  } catch (err) {
+    console.error("[email] Failed to send group approved email:", err);
   }
 }
 
