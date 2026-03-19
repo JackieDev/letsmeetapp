@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { searchGroups } from "@/db/queries/groups";
+import { getGroupsUserIsMemberOf, searchGroups } from "@/db/queries/groups";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +19,15 @@ export default async function GroupsSearchPage({
   const name = typeof params.name === "string" ? params.name : undefined;
   const city = typeof params.city === "string" ? params.city : undefined;
 
-  const groups = await searchGroups({ name, city });
+  const [groups, userMemberGroups] = await Promise.all([
+    searchGroups({ name, city }),
+    getGroupsUserIsMemberOf(userId),
+  ]);
+  const userMemberGroupIds = new Set(userMemberGroups.map((group) => group.id));
   const hasFilters = Boolean(name?.trim() || city?.trim());
 
   return (
-    <div className="container max-w-screen-2xl flex flex-col items-center px-4 py-8">
+    <div className="container mx-auto max-w-screen-2xl flex flex-col items-center px-4 py-8">
       <div className="flex w-full max-w-2xl flex-col gap-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">Search Groups</h1>
@@ -105,7 +109,22 @@ export default async function GroupsSearchPage({
                     href={`/group/${group.id}`}
                     className="flex flex-col gap-1 rounded-md border border-border/40 bg-background p-3 transition-colors hover:bg-muted/50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <span className="font-medium">{group.name}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">{group.name}</span>
+                      {group.ownerId === userId ? (
+                        <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                          Owner
+                        </span>
+                      ) : userMemberGroupIds.has(group.id) ? (
+                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                          Member
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          Not a member
+                        </span>
+                      )}
+                    </span>
                     <span className="text-muted-foreground text-sm">
                       {group.city}
                       {group.description ? ` · ${group.description}` : ""}

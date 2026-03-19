@@ -1,6 +1,5 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { auth } from "@clerk/nextjs/server";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
@@ -21,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { AddEventDialog } from "./AddEventDialog";
 import { EventBox } from "./EventBox";
 import { ManageMembersDialog } from "./ManageMembersDialog";
+import { ManageGroupDialog } from "./ManageGroupDialog";
 import { JoinGroupButton } from "./JoinGroupButton";
 import { LeaveGroupButton } from "./LeaveGroupButton";
 import { ViewGroupMembersDialog } from "./ViewGroupMembersDialog";
@@ -91,7 +91,7 @@ export default async function GroupPage({
   );
 
   return (
-    <div className="container max-w-screen-2xl flex flex-col items-center px-4 py-8">
+    <div className="container mx-auto max-w-screen-2xl flex flex-col items-center px-4 py-8">
       <div className="flex w-full max-w-2xl flex-col gap-6">
         <div className="flex flex-wrap items-center gap-2">
           <Link
@@ -106,12 +106,10 @@ export default async function GroupPage({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             {group.profilePicture ? (
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
-                <Image
+                <img
                   src={group.profilePicture}
                   alt=""
-                  fill
-                  className="object-cover"
-                  sizes="96px"
+                  className="h-full w-full object-cover"
                 />
               </div>
             ) : (
@@ -138,6 +136,11 @@ export default async function GroupPage({
             </div>
             {isOwner ? (
               <div className="mt-4 flex shrink-0 flex-col gap-2 sm:mt-0 sm:flex-col">
+                <ManageGroupDialog
+                  groupId={groupId}
+                  initialName={group.name}
+                  initialProfilePicture={group.profilePicture}
+                />
                 <ViewGroupMembersDialog members={approvedMembers} />
                 <ManageMembersDialog
                   groupId={groupId}

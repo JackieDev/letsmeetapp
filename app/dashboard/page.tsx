@@ -1,16 +1,16 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
-import Image from "next/image";
 import Link from "next/link";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getEventsUserIsAttending } from "@/db/queries/events";
-import { getGroupsUserIsMemberOf } from "@/db/queries/groups";
+import { getGroupsUserIsMemberOf, getPendingGroupsForApproval } from "@/db/queries/groups";
 import { buttonVariants } from "@/components/ui/button";
 import { LeaveGroupButton } from "@/app/group/[id]/LeaveGroupButton";
 import { ensureMemberForUser, getMemberByUserId } from "@/db/queries/members";
 import { getMessagesForUser } from "@/db/queries/messages";
 import { ProfileCard } from "./ProfileCard";
 import { MessagesTab } from "./MessagesTab";
+import { PendingGroupsAdminTab } from "./PendingGroupsAdminTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function DashboardPage() {
@@ -53,9 +53,16 @@ export default async function DashboardPage() {
     user.firstName?.trim() ||
     user.emailAddresses?.[0]?.emailAddress ||
     "there";
+  const primaryEmail = user.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
+  const isGroupApprover = primaryEmail === "jacqueline@letsmeet.uk";
+  const pendingGroups = isGroupApprover ? await getPendingGroupsForApproval() : [];
+  const pendingGroupsForTab = pendingGroups.map((group) => ({
+    ...group,
+    createdAt: group.createdAt.toISOString(),
+  }));
 
   return (
-    <div className="container max-w-screen-2xl flex flex-col items-center px-4 py-8">
+    <div className="container mx-auto max-w-screen-2xl flex flex-col items-center px-4 py-8">
       <SignedIn>
         <div className="flex w-full max-w-2xl flex-col gap-6">
           <div>
@@ -71,6 +78,9 @@ export default async function DashboardPage() {
               <TabsTrigger value="groups">Groups you&apos;re in</TabsTrigger>
               <TabsTrigger value="events">Events you&apos;re signed up for</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
+              {isGroupApprover ? (
+                <TabsTrigger value="admin-approvals">Admin approvals</TabsTrigger>
+              ) : null}
             </TabsList>
 
             <TabsContent value="profile">
@@ -93,12 +103,10 @@ export default async function DashboardPage() {
                       >
                         {group.profilePicture ? (
                           <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                            <Image
+                            <img
                               src={group.profilePicture}
                               alt=""
-                              fill
-                              className="object-cover"
-                              sizes="40px"
+                              className="h-full w-full object-cover"
                             />
                           </div>
                         ) : (
@@ -184,6 +192,12 @@ export default async function DashboardPage() {
             <TabsContent value="messages">
               <MessagesTab messages={messages} currentUserId={userId} />
             </TabsContent>
+
+            {isGroupApprover ? (
+              <TabsContent value="admin-approvals">
+                <PendingGroupsAdminTab pendingGroups={pendingGroupsForTab} />
+              </TabsContent>
+            ) : null}
           </Tabs>
         </div>
       </SignedIn>

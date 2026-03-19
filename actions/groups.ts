@@ -6,9 +6,12 @@ import { z } from "zod";
 import {
   sendGroupMemberJoinRequestEmail,
   sendNewGroupApprovalEmail,
+  sendGroupApprovedOwnerEmail,
 } from "@/lib/email";
 import {
   addGroupMember,
+  approveGroupById,
+  deleteGroupById,
   getGroup,
   getGroupByNameAndCity,
   getGroupMemberByUserId,
@@ -18,9 +21,11 @@ import {
   setGroupMemberApprovalRequirement as setGroupMemberApprovalRequirementDb,
   removeGroupMemberByUserId,
   setGroupMemberBannedStatus,
+  updateGroup,
   updateGroupMemberName,
   updateGroupMemberRole,
   isUserBannedFromGroup,
+  markGroupApprovalNotified,
 } from "@/db/queries/groups";
 
 const createGroupSchema = z.object({
@@ -93,6 +98,120 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
   revalidatePath("/dashboard");
 
   return { success: true, groupId: group.id };
+}
+
+const approveGroupSchema = z.object({
+  groupId: z.number().int().positive(),
+});
+
+export type ApproveGroupInput = z.infer<typeof approveGroupSchema>;
+
+export type ApproveGroupResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function approveGroup(input: ApproveGroupInput): Promise<ApproveGroupResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const user = await currentUser();
+  const approverEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
+  const isEmailApprover = approverEmail === "jacqueline@letsmeet.uk";
+
+  if (!isEmailApprover) {
+    return { success: false, error: "You are not authorized to approve groups." };
+  }
+
+  const parsed = approveGroupSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input." };
+  }
+
+  const group = await getGroup(parsed.data.groupId);
+  if (!group) {
+    return { success: false, error: "Group not found." };
+  }
+
+  if (!group.isApproved) {
+    await approveGroupById(group.id);
+  }
+
+  if (!group.notifiedApproval) {
+    try {
+      const client = await clerkClient();
+      const owner = await client.users.getUser(group.ownerId);
+      const toEmail = owner.primaryEmailAddress?.emailAddress;
+
+      if (toEmail) {
+        await sendGroupApprovedOwnerEmail({
+          toEmail,
+          groupName: group.name,
+          groupCity: group.city,
+        });
+      }
+    } catch (err) {
+      // Email failures should not block group approval.
+      console.error("[approveGroup] Failed to notify group owner:", err);
+    }
+
+    await markGroupApprovalNotified(group.id);
+  }
+
+  revalidatePath("/groups/search");
+  revalidatePath(`/group/${group.id}`);
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
+
+const deletePendingGroupSchema = z.object({
+  groupId: z.number().int().positive(),
+});
+
+export type DeletePendingGroupInput = z.infer<typeof deletePendingGroupSchema>;
+
+export type DeletePendingGroupResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function deletePendingGroup(
+  input: DeletePendingGroupInput
+): Promise<DeletePendingGroupResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const user = await currentUser();
+  const approverEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
+  const isEmailApprover = approverEmail === "jacqueline@letsmeet.uk";
+  if (!isEmailApprover) {
+    return { success: false, error: "You are not authorized to manage groups." };
+  }
+
+  const parsed = deletePendingGroupSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input." };
+  }
+
+  const group = await getGroup(parsed.data.groupId);
+  if (!group) {
+    return { success: false, error: "Group not found." };
+  }
+
+  if (group.isApproved) {
+    return { success: false, error: "Only pending groups can be deleted here." };
+  }
+
+  await deleteGroupById(group.id);
+
+  revalidatePath("/groups/search");
+  revalidatePath(`/group/${group.id}`);
+  revalidatePath("/dashboard");
+
+  return { success: true };
 }
 
 const modifyMemberSchema = z.object({
@@ -499,6 +618,116 @@ export async function leaveGroup(input: LeaveGroupInput): Promise<LeaveGroupResu
 
   await removeGroupMemberByUserId(parsed.data.groupId, userId);
   revalidatePath(`/group/${parsed.data.groupId}`);
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
+
+const updateOwnedGroupDetailsSchema = z.object({
+  groupId: z.number().int().positive(),
+  name: z.string().trim().min(1, "Group name is required.").max(255),
+  profilePicture: z.string().url().max(500).or(z.literal("")).optional(),
+});
+
+export type UpdateOwnedGroupDetailsInput = z.infer<
+  typeof updateOwnedGroupDetailsSchema
+>;
+
+export type UpdateOwnedGroupDetailsResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function updateOwnedGroupDetails(
+  input: UpdateOwnedGroupDetailsInput
+): Promise<UpdateOwnedGroupDetailsResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const parsed = updateOwnedGroupDetailsSchema.safeParse(input);
+  if (!parsed.success) {
+    const fields = parsed.error.flatten().fieldErrors;
+    const message =
+      fields.name?.[0] ?? fields.profilePicture?.[0] ?? "Invalid input.";
+    return { success: false, error: message };
+  }
+
+  const group = await getGroup(parsed.data.groupId);
+  if (!group) {
+    return { success: false, error: "Group not found." };
+  }
+  if (group.ownerId !== userId) {
+    return {
+      success: false,
+      error: "Only the group owner can update group details.",
+    };
+  }
+
+  const existing = await getGroupByNameAndCity(
+    parsed.data.name,
+    group.city,
+    group.id
+  );
+  if (existing) {
+    return {
+      success: false,
+      error: "Another group in this city already uses that name.",
+    };
+  }
+
+  await updateGroup(parsed.data.groupId, {
+    name: parsed.data.name,
+    profilePicture: parsed.data.profilePicture
+      ? parsed.data.profilePicture
+      : null,
+  });
+
+  revalidatePath(`/group/${parsed.data.groupId}`);
+  revalidatePath("/groups/search");
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
+
+const closeOwnedGroupSchema = z.object({
+  groupId: z.number().int().positive(),
+});
+
+export type CloseOwnedGroupInput = z.infer<typeof closeOwnedGroupSchema>;
+
+export type CloseOwnedGroupResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function closeOwnedGroup(
+  input: CloseOwnedGroupInput
+): Promise<CloseOwnedGroupResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const parsed = closeOwnedGroupSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input." };
+  }
+
+  const group = await getGroup(parsed.data.groupId);
+  if (!group) {
+    return { success: false, error: "Group not found." };
+  }
+  if (group.ownerId !== userId) {
+    return {
+      success: false,
+      error: "Only the group owner can close the group.",
+    };
+  }
+
+  await deleteGroupById(parsed.data.groupId);
+
+  revalidatePath(`/group/${parsed.data.groupId}`);
+  revalidatePath("/groups/search");
   revalidatePath("/dashboard");
 
   return { success: true };

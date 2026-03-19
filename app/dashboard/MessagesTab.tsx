@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 import { SendHorizonal } from "lucide-react";
 import type { MessageWithUsers } from "@/db/queries/messages";
 import { sendMessageToUser } from "@/actions/messages";
@@ -43,15 +43,32 @@ export function MessagesTab({ messages, currentUserId }: Props) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
     threads[0]?.userId ?? null
   );
+  const selectedThread = threads.find((thread) => thread.userId === selectedUserId) ?? null;
+  const selectedThreadName = selectedThread?.name ?? "Unknown user";
+  const [recipientName, setRecipientName] = useState(selectedThread?.name ?? "");
+  const [body, setBody] = useState("");
 
-  function handleSend(formData: FormData) {
-    const recipientName = formData.get("recipientName")?.toString() ?? "";
-    const body = formData.get("body")?.toString() ?? "";
+  useEffect(() => {
+    if (selectedThread?.name) {
+      setRecipientName(selectedThread.name);
+    }
+  }, [selectedThread?.name]);
+
+  function startNewConversation() {
+    setSelectedUserId(null);
+    setRecipientName("");
+    setBody("");
+    setError(null);
+  }
+
+  function handleSend(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setError(null);
 
     startTransition(async () => {
       try {
         await sendMessageToUser({ recipientName, body });
+        setBody("");
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
@@ -71,7 +88,7 @@ export function MessagesTab({ messages, currentUserId }: Props) {
 
       <div className="mt-4 flex gap-4">
         <div className="w-48 shrink-0 border-r border-border/40 pr-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Conversations
           </h3>
           {threads.length === 0 ? (
@@ -101,11 +118,18 @@ export function MessagesTab({ messages, currentUserId }: Props) {
               })}
             </ul>
           )}
+          <button
+            type="button"
+            onClick={startNewConversation}
+            className="pt-[25px] text-xs font-medium uppercase tracking-wide text-primary hover:underline"
+          >
+            New conversation
+          </button>
         </div>
 
         <div className="flex-1 space-y-4">
           <form
-            action={handleSend}
+            onSubmit={handleSend}
             className="space-y-3"
           >
             <div className="space-y-1.5">
@@ -116,8 +140,16 @@ export function MessagesTab({ messages, currentUserId }: Props) {
                 id="recipientName"
                 name="recipientName"
                 placeholder="Start typing their name"
+                value={recipientName}
+                onChange={(event) => setRecipientName(event.target.value)}
+                readOnly={Boolean(selectedThread?.name)}
                 required
               />
+              {selectedThread?.name ? (
+                <p className="text-xs text-muted-foreground">
+                  Replying to this conversation.
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-1.5">
@@ -129,6 +161,8 @@ export function MessagesTab({ messages, currentUserId }: Props) {
                 name="body"
                 className="min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="Write your message…"
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
                 required
               />
             </div>
@@ -170,6 +204,7 @@ export function MessagesTab({ messages, currentUserId }: Props) {
                   .map((message) => {
                     const isSentByCurrentUser =
                       message.senderUserId === currentUserId;
+                    const authorLabel = isSentByCurrentUser ? "You" : selectedThreadName;
                     return (
                       <li
                         key={message.id}
@@ -177,7 +212,7 @@ export function MessagesTab({ messages, currentUserId }: Props) {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-medium">
-                            {isSentByCurrentUser ? "You" : "Them"}
+                            {authorLabel}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {new Date(message.createdAt).toLocaleString()}
