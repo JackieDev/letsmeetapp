@@ -2,7 +2,7 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import Link from "next/link";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getEventsUserIsAttending } from "@/db/queries/events";
+import { getEventsUserIsAttending, getUpcomingEventsForUserGroups } from "@/db/queries/events";
 import { getGroupsUserIsMemberOf, getPendingGroupsForApproval } from "@/db/queries/groups";
 import { buttonVariants } from "@/components/ui/button";
 import { LeaveGroupButton } from "@/app/group/[id]/LeaveGroupButton";
@@ -13,11 +13,23 @@ import { MessagesTab } from "./MessagesTab";
 import { PendingGroupsAdminTab } from "./PendingGroupsAdminTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { userId } = await auth();
   if (!userId) {
     redirect("/");
   }
+
+  const params = await searchParams;
+  const requestedTab = typeof params.tab === "string" ? params.tab : "profile";
+  const defaultTab = ["profile", "groups", "calendar", "events", "messages", "admin-approvals"].includes(
+    requestedTab
+  )
+    ? requestedTab
+    : "profile";
 
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
@@ -29,11 +41,12 @@ export default async function DashboardPage() {
     profilePicture: user.imageUrl ?? null,
   });
 
-  const [allAttendingEvents, memberGroups, member, messages] = await Promise.all([
+  const [allAttendingEvents, memberGroups, member, messages, calendarEvents] = await Promise.all([
     getEventsUserIsAttending(userId),
     getGroupsUserIsMemberOf(userId),
     getMemberByUserId(userId),
     getMessagesForUser(userId),
+    getUpcomingEventsForUserGroups(userId),
   ]);
 
   const now = new Date();
@@ -72,10 +85,11 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <Tabs defaultValue="profile">
+          <Tabs defaultValue={defaultTab}>
             <TabsList className="w-full justify-start">
               <TabsTrigger value="profile">Your profile</TabsTrigger>
               <TabsTrigger value="groups">Groups you&apos;re in</TabsTrigger>
+              <TabsTrigger value="calendar">Calendar</TabsTrigger>
               <TabsTrigger value="events">Events you&apos;re signed up for</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
               {isGroupApprover ? (
@@ -175,6 +189,57 @@ export default async function DashboardPage() {
                         <span className="text-muted-foreground text-base">
                           {new Date(event.eventDate).toLocaleString()}
                           {event.location ? ` · ${event.location}` : ""}
+                        </span>
+                        <Link
+                          href={`/group/${event.groupId}/event/${event.id}`}
+                          className={buttonVariants({ variant: "secondary", size: "sm", className: "scale-110 w-fit self-end" })}
+                        >
+                          View event
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="calendar">
+              <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+                <h2 className="text-xl font-medium">Upcoming events from your groups</h2>
+                {calendarEvents.length === 0 ? (
+                  <p className="text-muted-foreground mt-2 text-base">
+                    There are no upcoming events in your groups yet.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {calendarEvents.map((event) => (
+                      <li
+                        key={event.id}
+                        className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background p-3 text-base"
+                      >
+                        <Link
+                          href={`/group/${event.groupId}/event/${event.id}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {event.name}
+                        </Link>
+                        <span className="text-muted-foreground text-sm">
+                          {event.groupName}
+                        </span>
+                        <span className="text-muted-foreground text-base">
+                          {new Date(event.eventDate).toLocaleString()}
+                          {event.location ? ` · ${event.location}` : ""}
+                        </span>
+                        <span
+                          className={
+                            event.isSignedUp
+                              ? "mt-1 w-fit rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+                              : "mt-1 w-fit rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                          }
+                        >
+                          {event.isSignedUp
+                            ? "You are signed up"
+                            : "You are not signed up"}
                         </span>
                         <Link
                           href={`/group/${event.groupId}/event/${event.id}`}
