@@ -12,6 +12,12 @@ import {
 import { dark } from "@clerk/themes";
 import { ReportIssueButton } from "@/components/ReportIssueButton";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -43,9 +49,36 @@ export default function RootLayout({
             <div className="flex h-14 w-full items-center">
               <div className="flex flex-1 items-center pl-4">
                 <SignedIn>
-                  <Link href="/dashboard" className="font-semibold hover:opacity-80 transition-opacity">
-                    LetsMeet
-                  </Link>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="inline-flex items-center gap-2 font-semibold hover:opacity-80 transition-opacity"
+                        type="button"
+                        aria-label="Open navigation menu"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="inline-flex h-4 w-[1.3rem] flex-col justify-between"
+                        >
+                          <span className="h-0.5 w-[1.3rem] rounded bg-foreground" />
+                          <span className="h-0.5 w-[1.3rem] rounded bg-foreground" />
+                          <span className="h-0.5 w-[1.3rem] rounded bg-foreground" />
+                        </span>
+                        LetsMeet
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard">Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard?tab=calendar">Calendar</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/groups/search">Search</Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </SignedIn>
                 <SignedOut>
                   <Link href="/" className="font-semibold hover:opacity-80 transition-opacity">
