@@ -1,9 +1,19 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const APPROVAL_RECIPIENT = "jacqueline@letsmeet.uk";
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "jacqueline@letsmeet.uk";
+
+let resendSingleton: Resend | undefined;
+
+function getResend(): Resend | undefined {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return undefined;
+  if (!resendSingleton) resendSingleton = new Resend(key);
+  return resendSingleton;
+}
+
+function getFromEmail(): string {
+  return process.env.RESEND_FROM_EMAIL ?? "jacqueline@letsmeet.uk";
+}
 
 export type NewGroupDetails = {
   id: number;
@@ -23,9 +33,12 @@ export async function sendNewGroupApprovalEmail(group: NewGroupDetails): Promise
     return;
   }
 
+  const resend = getResend();
+  if (!resend) return;
+
   try {
     const { error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromEmail(),
       to: [APPROVAL_RECIPIENT],
       subject: `[LetsMeet] New group for approval: ${group.name}`,
       html: `
@@ -64,9 +77,12 @@ export async function sendReportIssueEmail(report: ReportIssueDetails): Promise<
     return;
   }
 
+  const resend = getResend();
+  if (!resend) return;
+
   try {
     const { error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromEmail(),
       to: [APPROVAL_RECIPIENT],
       subject: `[LetsMeet] Report an issue from ${escapeHtml(report.email)}`,
       html: `
@@ -119,9 +135,12 @@ export async function sendGroupMemberJoinRequestEmail(
     return;
   }
 
+  const resend = getResend();
+  if (!resend) return;
+
   try {
     const { error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromEmail(),
       to: [details.toEmail],
       subject: `[LetsMeet] Join request: ${details.groupName}`,
       html: `
@@ -168,9 +187,12 @@ export async function sendGroupApprovedOwnerEmail(
     return;
   }
 
+  const resend = getResend();
+  if (!resend) return;
+
   try {
     const { error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromEmail(),
       to: [details.toEmail],
       subject: `[LetsMeet] Your group was approved: ${details.groupName}`,
       html: `
