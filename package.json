@@ -14,6 +14,7 @@
     "db:test": "tsx db/test.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.1014.0",
     "@clerk/nextjs": "^6.37.4",
     "@clerk/themes": "^2.4.52",
     "@neondatabase/serverless": "^1.0.2",
@@ -28,6 +29,9 @@
     "react-dom": "19.2.3",
     "resend": "^6.9.2",
     "tailwind-merge": "^3.4.1"
+  },
+  "overrides": {
+    "tailwindcss": "$tailwindcss"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
