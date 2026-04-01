@@ -113,7 +113,6 @@ export default function RootLayout({
                   >
                     Create New Group
                   </Link>
-                  <UserButton />
                 </SignedIn>
               </nav>
             </div>
