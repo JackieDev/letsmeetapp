@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Poppins } from "next/font/google";
 import {
@@ -7,17 +7,11 @@ import {
   SignUpButton,
   SignedIn,
   SignedOut,
-  UserButton,
 } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { ReportIssueButton } from "@/components/ReportIssueButton";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { LetsMeetMenu } from "./LetsMeetMenu";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -30,6 +24,12 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "LetsMeet App",
   description: "Schedule and manage your meetings",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#09090b",
 };
 
 export default function RootLayout({
@@ -49,36 +49,7 @@ export default function RootLayout({
             <div className="flex h-14 w-full items-center">
               <div className="flex flex-1 items-center pl-4">
                 <SignedIn>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="inline-flex items-center gap-2 font-semibold hover:opacity-80 transition-opacity"
-                        type="button"
-                        aria-label="Open navigation menu"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="inline-flex h-4 w-[1.3rem] flex-col justify-between"
-                        >
-                          <span className="h-0.5 w-[1.3rem] rounded bg-foreground" />
-                          <span className="h-0.5 w-[1.3rem] rounded bg-foreground" />
-                          <span className="h-0.5 w-[1.3rem] rounded bg-foreground" />
-                        </span>
-                        LetsMeet
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard">Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard?tab=calendar">Calendar</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/groups/search">Search</Link>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <LetsMeetMenu />
                 </SignedIn>
                 <SignedOut>
                   <Link href="/" className="font-semibold hover:opacity-80 transition-opacity">
@@ -94,7 +65,7 @@ export default function RootLayout({
                       Sign In
                     </button>
                   </SignInButton>
-                  <SignUpButton mode="modal">
+                  <SignUpButton mode="modal" forceRedirectUrl="/billing">
                     <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
                       Sign Up
                     </button>

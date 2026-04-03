@@ -27,7 +27,12 @@ export async function insertMessage(params: {
   });
 }
 
-export async function getMessagesForUser(userId: string): Promise<MessageWithUsers[]> {
+export async function getMessagesForUser(
+  userId: string,
+  options?: { limit?: number }
+): Promise<MessageWithUsers[]> {
+  const limit = options?.limit ?? 150;
+
   const rows = await db
     .select({
       id: messagesTable.id,
@@ -44,7 +49,8 @@ export async function getMessagesForUser(userId: string): Promise<MessageWithUse
         eq(messagesTable.recipientUserId, userId)
       )
     )
-    .orderBy(desc(messagesTable.createdAt));
+    .orderBy(desc(messagesTable.createdAt))
+    .limit(limit);
 
   const participantIds = Array.from(
     new Set(rows.flatMap((row) => [row.senderUserId, row.recipientUserId]))

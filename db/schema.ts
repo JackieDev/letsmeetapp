@@ -33,6 +33,14 @@ export const membersTable = pgTable(
     profilePicture: varchar({ length: 500 }),
     city: varchar({ length: 100 }),
     interests: text(), // free-form interests/bio field
+
+    // Clerk Billing (B2C) fields
+    billingCustomerId: varchar({ length: 255 }), // Clerk billing customer id (if available)
+    billingSubscriptionId: varchar({ length: 255 }), // Clerk subscription id (top-level)
+    billingPlanId: varchar({ length: 255 }), // The paid plan id we recognize
+    billingStatus: varchar({ length: 50 }), // e.g. active, past_due, canceled
+    billingPeriodEnd: timestamp(), // When the current paid period ends (if known)
+    isPaidSubscriber: boolean().default(false).notNull(),
   },
   (t) => [unique("members_email_unique").on(t.email)]
 );
