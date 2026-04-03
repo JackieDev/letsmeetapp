@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState, useTransition } from "react";
+import { FormEvent, useMemo, useState, useTransition } from "react";
 import { SendHorizonal } from "lucide-react";
 import type { MessageWithUsers } from "@/db/queries/messages";
 import { sendMessageToUser } from "@/actions/messages";
@@ -16,8 +16,7 @@ export function MessagesTab({ messages, currentUserId }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Build conversation threads keyed by the other participant.
-  const threads = (() => {
+  const threads = useMemo(() => {
     const map = new Map<
       string,
       {
@@ -38,25 +37,31 @@ export function MessagesTab({ messages, currentUserId }: Props) {
       const nameB = (b.name ?? "Unknown user").toLowerCase();
       return nameA.localeCompare(nameB);
     });
-  })();
+  }, [currentUserId, messages]);
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
     threads[0]?.userId ?? null
   );
   const selectedThread = threads.find((thread) => thread.userId === selectedUserId) ?? null;
   const selectedThreadName = selectedThread?.name ?? "Unknown user";
-  const [recipientName, setRecipientName] = useState(selectedThread?.name ?? "");
+  const selectedConversationMessages = useMemo(
+    () =>
+      messages.filter(
+        (message) =>
+          selectedUserId &&
+          ((message.senderUserId === currentUserId &&
+            message.recipientUserId === selectedUserId) ||
+            (message.recipientUserId === currentUserId &&
+              message.senderUserId === selectedUserId))
+      ),
+    [currentUserId, messages, selectedUserId]
+  );
+  const [newRecipientName, setNewRecipientName] = useState("");
   const [body, setBody] = useState("");
-
-  useEffect(() => {
-    if (selectedThread?.name) {
-      setRecipientName(selectedThread.name);
-    }
-  }, [selectedThread?.name]);
 
   function startNewConversation() {
     setSelectedUserId(null);
-    setRecipientName("");
+    setNewRecipientName("");
     setBody("");
     setError(null);
   }
@@ -64,6 +69,12 @@ export function MessagesTab({ messages, currentUserId }: Props) {
   function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    const recipientName = selectedThread?.name ?? newRecipientName;
+    if (!recipientName) {
+      setError("Please enter a recipient name.");
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -86,8 +97,8 @@ export function MessagesTab({ messages, currentUserId }: Props) {
         Send a direct message to someone who shares a group with you, by searching their name.
       </p>
 
-      <div className="mt-4 flex gap-4">
-        <div className="w-48 shrink-0 border-r border-border/40 pr-2">
+      <div className="mt-4 grid gap-4 md:grid-cols-[13rem_1fr]">
+        <div className="rounded-md border border-border/40 p-3 md:rounded-none md:border-0 md:border-r md:p-0 md:pr-2">
           <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Conversations
           </h3>
@@ -96,7 +107,7 @@ export function MessagesTab({ messages, currentUserId }: Props) {
               No conversations yet.
             </p>
           ) : (
-            <ul className="space-y-1 max-h-80 overflow-y-auto pr-1">
+            <ul className="max-h-52 space-y-1 overflow-y-auto pr-1 md:max-h-80">
               {threads.map((thread) => {
                 const label = thread.name ?? "Unknown user";
                 const isActive = thread.userId === selectedUserId;
@@ -121,7 +132,7 @@ export function MessagesTab({ messages, currentUserId }: Props) {
           <button
             type="button"
             onClick={startNewConversation}
-            className="pt-[25px] text-xs font-medium uppercase tracking-wide text-primary hover:underline"
+            className="pt-4 text-xs font-medium uppercase tracking-wide text-primary hover:underline"
           >
             New conversation
           </button>
@@ -140,8 +151,8 @@ export function MessagesTab({ messages, currentUserId }: Props) {
                 id="recipientName"
                 name="recipientName"
                 placeholder="Start typing their name"
-                value={recipientName}
-                onChange={(event) => setRecipientName(event.target.value)}
+                value={selectedThread?.name ?? newRecipientName}
+                onChange={(event) => setNewRecipientName(event.target.value)}
                 readOnly={Boolean(selectedThread?.name)}
                 required
               />
@@ -193,15 +204,7 @@ export function MessagesTab({ messages, currentUserId }: Props) {
               </p>
             ) : (
               <ul className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                {messages
-                  .filter(
-                    (message) =>
-                      (message.senderUserId === currentUserId &&
-                        message.recipientUserId === selectedUserId) ||
-                      (message.recipientUserId === currentUserId &&
-                        message.senderUserId === selectedUserId)
-                  )
-                  .map((message) => {
+                {selectedConversationMessages.map((message) => {
                     const isSentByCurrentUser =
                       message.senderUserId === currentUserId;
                     const authorLabel = isSentByCurrentUser ? "You" : selectedThreadName;

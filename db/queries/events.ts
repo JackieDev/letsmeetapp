@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   eventAttendeesTable,
@@ -91,44 +91,11 @@ export async function getEventsUserIsAttending(userId: string) {
 
 /** Get upcoming events in all approved groups the user belongs to, with signup status. */
 export async function getUpcomingEventsForUserGroups(userId: string) {
-  const memberRows = await db
-    .select({ groupId: groupMembersTable.groupId })
-    .from(groupMembersTable)
-    .where(
-      and(
-        eq(groupMembersTable.userId, userId),
-        eq(groupMembersTable.isBanned, false),
-        eq(groupMembersTable.isMemberApproved, true)
-      )
-    );
-
-  const memberGroupIds = memberRows.map((row) => row.groupId);
-
-  const groups = await db
-    .select({
-      id: groupsTable.id,
-      name: groupsTable.name,
-    })
-    .from(groupsTable)
-    .where(
-      and(
-        eq(groupsTable.isApproved, true),
-        or(
-          eq(groupsTable.ownerId, userId),
-          inArray(groupsTable.id, memberGroupIds.length ? memberGroupIds : [-1])
-        )
-      )
-    );
-
-  if (!groups.length) return [];
-
-  const groupIds = groups.map((group) => group.id);
-  const groupNamesById = new Map(groups.map((group) => [group.id, group.name]));
-
-  const rows = await db
+  return db
     .select({
       id: eventsTable.id,
       groupId: eventsTable.groupId,
+      groupName: groupsTable.name,
       name: eventsTable.name,
       description: eventsTable.description,
       eventDate: eventsTable.eventDate,
@@ -136,6 +103,7 @@ export async function getUpcomingEventsForUserGroups(userId: string) {
       isSignedUp: sql<boolean>`${eventAttendeesTable.id} is not null`,
     })
     .from(eventsTable)
+    .innerJoin(groupsTable, eq(groupsTable.id, eventsTable.groupId))
     .leftJoin(
       eventAttendeesTable,
       and(
@@ -145,16 +113,22 @@ export async function getUpcomingEventsForUserGroups(userId: string) {
     )
     .where(
       and(
-        inArray(eventsTable.groupId, groupIds),
-        gte(eventsTable.eventDate, new Date())
+        eq(groupsTable.isApproved, true),
+        gte(eventsTable.eventDate, new Date()),
+        or(
+          eq(groupsTable.ownerId, userId),
+          sql<boolean>`exists (
+            select 1
+            from ${groupMembersTable}
+            where ${groupMembersTable.groupId} = ${groupsTable.id}
+              and ${groupMembersTable.userId} = ${userId}
+              and ${groupMembersTable.isBanned} = false
+              and ${groupMembersTable.isMemberApproved} = true
+          )`
+        )
       )
     )
     .orderBy(eventsTable.eventDate);
-
-  return rows.map((row) => ({
-    ...row,
-    groupName: groupNamesById.get(row.groupId) ?? "Unknown group",
-  }));
 }
 
 /** Get event IDs (in this group) that the user is attending. */

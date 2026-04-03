@@ -7,8 +7,13 @@ import { updateCurrentMemberProfile } from "@/actions/members";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+type MemberForClient = Omit<Member, "billingPeriodEnd"> & {
+  // Server components may return `Date` values; client props must be JSON-safe.
+  billingPeriodEnd: string | null;
+};
+
 type Props = {
-  member: Member | null;
+  member: MemberForClient | null;
 };
 
 export function ProfileCard({ member }: Props) {
