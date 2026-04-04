@@ -1,0 +1,26 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+    build:
+      commands:
+        - echo "CLERK_SECRET_KEY=$CLERK_SECRET_KEY" >> .env.production
+        - echo "DATABASE_URL=$DATABASE_URL" >> .env.production
+        - echo "RESEND_API_KEY=$RESEND_API_KEY" >> .env.production   
+        - echo "AWS_SECRETS_ID=$AWS_SECRETS_ID" >> .env.production
+        - echo "AWS_REGION=$AWS_REGION" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_ID=$NEXT_PUBLIC_CLERK_BILLING_PLAN_ID" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_PERIOD=$NEXT_PUBLIC_CLERK_BILLING_PLAN_PERIOD" >> .env.production
+        - echo "CLERK_WEBHOOK_SIGNING_SECRET=$CLERK_WEBHOOK_SIGNING_SECRET" >> .env.production
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*
