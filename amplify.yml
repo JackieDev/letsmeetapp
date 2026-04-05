@@ -3,6 +3,8 @@ frontend:
   phases:
     preBuild:
       commands:
+        - echo "HELLO!!!!!"
+        - $(echo $secrets | jq -r '.MY_SECRET')
         - echo "CLERK_SECRET_KEY=$(echo $secrets | jq -r '.CLERK_SECRET_KEY')" >> .env.production
         - echo "DATABASE_URL=$(echo $secrets | jq -r '.DATABASE_URL')" >> .env.production
         - echo "RESEND_API_KEY=$(echo $secrets | jq -r '.RESEND_API_KEY')" >> .env.production   
