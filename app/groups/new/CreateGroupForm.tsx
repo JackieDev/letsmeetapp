@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createGroup, type CreateGroupResult } from "@/actions/groups";
 import { Button } from "@/components/ui/button";
 
@@ -9,13 +8,14 @@ const inputClassName =
   "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 export function CreateGroupForm() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     setIsSubmitting(true);
 
     const form = e.currentTarget;
@@ -32,8 +32,8 @@ export function CreateGroupForm() {
     setIsSubmitting(false);
 
     if (result.success) {
-      router.push("/groups");
-      router.refresh();
+      form.reset();
+      setSuccessMessage("Your group has been submitted for approval.");
       return;
     }
 
@@ -99,6 +99,11 @@ export function CreateGroupForm() {
         {error && (
           <p className="text-destructive text-sm" role="alert">
             {error}
+          </p>
+        )}
+        {successMessage && (
+          <p className="text-emerald-700 text-sm dark:text-emerald-300" role="status">
+            {successMessage}
           </p>
         )}
         <Button type="submit" disabled={isSubmitting}>

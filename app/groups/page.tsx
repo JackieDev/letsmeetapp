@@ -45,43 +45,6 @@ export default async function GroupsPage({
           </p>
         </div>
 
-        <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
-          <h2 className="text-lg font-medium">Groups you&apos;re in</h2>
-          {sortedMemberGroups.length === 0 ? (
-            <p className="text-muted-foreground mt-2 text-sm">
-              You are not a member of any groups yet.
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {sortedMemberGroups.map((group) => (
-                <li
-                  key={group.id}
-                  className="flex items-center justify-between gap-3 rounded-md border border-border/40 bg-background p-3"
-                >
-                  <div className="min-w-0">
-                    <Link
-                      href={`/group/${group.id}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {group.name}
-                    </Link>
-                    <p className="text-muted-foreground text-sm">
-                      {group.city}
-                      {group.ownerId === userId ? " · You own this group" : ""}
-                    </p>
-                  </div>
-                  <Link
-                    href={`/group/${group.id}`}
-                    className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
-                  >
-                    View
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
         <form
           method="get"
           action="/groups"
@@ -135,58 +98,102 @@ export default async function GroupsPage({
           </div>
         </form>
 
+        {hasFilters ? (
+          <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+            <h2 className="text-lg font-medium">Search results</h2>
+            {groups.length === 0 ? (
+              <p className="text-muted-foreground mt-2 text-sm">
+                No groups match your search. Try different name or city.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {groups.map((group) => (
+                  <li key={group.id}>
+                    <Link
+                      href={`/group/${group.id}`}
+                      className="flex flex-col gap-1 rounded-md border border-border/40 bg-background p-3 transition-colors hover:bg-muted/50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium">{group.name}</span>
+                        {group.ownerId === userId ? (
+                          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            Owner
+                          </span>
+                        ) : userMemberGroupIds.has(group.id) ? (
+                          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            Member
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                            Not a member
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        {group.city}
+                        {group.description ? ` · ${group.description}` : ""}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
+
+        <details className="group rounded-lg border border-border/40 bg-card p-4 text-card-foreground shadow-sm">
+          <summary
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "w-full cursor-pointer justify-center list-none [&::-webkit-details-marker]:hidden",
+            )}
+          >
+            Create new group
+          </summary>
+          <p className="text-muted-foreground mt-4 text-sm">
+            New groups require approval which takes up to 3 days. These will be notified by email.
+          </p>
+          <div className="mt-4">
+            <CreateGroupForm />
+          </div>
+        </details>
+
         <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
-          <h2 className="text-lg font-medium">
-            {hasFilters ? "Search results" : "All approved groups"}
-          </h2>
-          {groups.length === 0 ? (
+          <h2 className="text-lg font-medium">Groups you&apos;re in</h2>
+          {sortedMemberGroups.length === 0 ? (
             <p className="text-muted-foreground mt-2 text-sm">
-              {hasFilters
-                ? "No groups match your search. Try different name or city."
-                : "No groups yet."}
+              You are not a member of any groups yet.
             </p>
           ) : (
-            <ul className="mt-3 space-y-3">
-              {groups.map((group) => (
-                <li key={group.id}>
+            <ul className="mt-3 space-y-2">
+              {sortedMemberGroups.map((group) => (
+                <li
+                  key={group.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-border/40 bg-background p-3"
+                >
+                  <div className="min-w-0">
+                    <Link
+                      href={`/group/${group.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {group.name}
+                    </Link>
+                    <p className="text-muted-foreground text-sm">
+                      {group.city}
+                      {group.ownerId === userId ? " · You own this group" : ""}
+                    </p>
+                  </div>
                   <Link
                     href={`/group/${group.id}`}
-                    className="flex flex-col gap-1 rounded-md border border-border/40 bg-background p-3 transition-colors hover:bg-muted/50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring"
+                    className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="font-medium">{group.name}</span>
-                      {group.ownerId === userId ? (
-                        <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                          Owner
-                        </span>
-                      ) : userMemberGroupIds.has(group.id) ? (
-                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                          Member
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                          Not a member
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      {group.city}
-                      {group.description ? ` · ${group.description}` : ""}
-                    </span>
+                    View
                   </Link>
                 </li>
               ))}
             </ul>
           )}
         </div>
-
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-medium">Create new group</h2>
-          <p className="text-muted-foreground text-sm">
-            New groups require approval before they appear in search.
-          </p>
-        </div>
-        <CreateGroupForm />
       </div>
     </div>
   );
