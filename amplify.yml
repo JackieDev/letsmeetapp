@@ -1,10 +1,17 @@
 version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - echo "Now running the build phase for the backend"
+        - npm install -g @aws-amplify/cli
+        - echo "# install jq"
+        - yum install jq -y
 frontend:
   phases:
     preBuild:
       commands:
-        - apt-get update && apt-get install -y jq
-        - echo HELLO!!!!!
+        - echo "Now running the preBuild phase for the frontend"
         - echo ($secrets | jq -r '.MY_SECRET')
         - echo "CLERK_SECRET_KEY=$(echo $secrets | jq -r '.CLERK_SECRET_KEY')" >> .env.production
         - echo "DATABASE_URL=$(echo $secrets | jq -r '.DATABASE_URL')" >> .env.production
