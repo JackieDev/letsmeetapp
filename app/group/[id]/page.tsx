@@ -95,10 +95,10 @@ export default async function GroupPage({
       <div className="flex w-full max-w-2xl flex-col gap-6">
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href="/groups/search"
+            href="/groups"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
-            Back to search
+            Back to groups
           </Link>
         </div>
 

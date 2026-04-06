@@ -32,7 +32,7 @@ export function CreateGroupForm() {
     setIsSubmitting(false);
 
     if (result.success) {
-      router.push("/groups/search");
+      router.push("/groups");
       router.refresh();
       return;
     }

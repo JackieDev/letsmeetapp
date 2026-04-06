@@ -73,13 +73,13 @@ export default function RootLayout({
                 </SignedOut>
                 <SignedIn>
                   <Link
-                    href="/groups/search"
+                    href="/groups"
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                   >
-                    Search Groups
+                    Browse Groups
                   </Link>
                   <Link
-                    href="/groups/new"
+                    href="/groups"
                     className={cn(buttonVariants({ size: "sm" }))}
                   >
                     Create New Group
