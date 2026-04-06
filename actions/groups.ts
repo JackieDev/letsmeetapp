@@ -626,7 +626,17 @@ export async function leaveGroup(input: LeaveGroupInput): Promise<LeaveGroupResu
 const updateOwnedGroupDetailsSchema = z.object({
   groupId: z.number().int().positive(),
   name: z.string().trim().min(1, "Group name is required.").max(255),
-  profilePicture: z.string().url().max(500).or(z.literal("")).optional(),
+  profilePicture: z
+    .string()
+    .max(3_000_000)
+    .refine(
+      (value) =>
+        value.length === 0 ||
+        z.string().url().safeParse(value).success ||
+        /^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/.test(value),
+      { message: "Profile picture must be a valid URL or uploaded image." }
+    )
+    .optional(),
 });
 
 export type UpdateOwnedGroupDetailsInput = z.infer<

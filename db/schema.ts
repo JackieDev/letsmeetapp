@@ -10,7 +10,7 @@ export const groupsTable = pgTable(
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     name: varchar({ length: 255 }).notNull(),
     description: text(),
-    profilePicture: varchar({ length: 500 }), // URL/path to group profile picture
+    profilePicture: text(), // Supports URL/path or uploaded image data URL
     city: varchar({ length: 100 }).notNull(), // UK city/town
     ownerId: varchar({ length: 255 }).notNull(), // Clerk user ID
     isApproved: boolean().default(false).notNull(),
