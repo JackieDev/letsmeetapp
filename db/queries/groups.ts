@@ -1,6 +1,11 @@
 import { and, eq, ilike, ne, or, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { groupMembersTable, groupsTable, membersTable } from "@/db/schema";
+import {
+  groupMemberPhotosTable,
+  groupMembersTable,
+  groupsTable,
+  membersTable,
+} from "@/db/schema";
 
 /** Escape % and _ for safe use in ilike (treat as literal). */
 function escapeIlike(value: string): string {
@@ -10,6 +15,7 @@ function escapeIlike(value: string): string {
 export type GroupInsert = typeof groupsTable.$inferInsert;
 export type Group = typeof groupsTable.$inferSelect;
 export type GroupMember = typeof groupMembersTable.$inferSelect;
+export type GroupMemberPhoto = typeof groupMemberPhotosTable.$inferSelect;
 
 /** Get a single group by id. Returns null if not found. */
 export async function getGroup(id: number) {
@@ -388,6 +394,60 @@ export async function updateGroupMemberName(
         eq(groupMembersTable.userId, userId)
       )
     );
+}
+
+export type GroupMemberPhotoWithMember = {
+  id: number;
+  userId: string;
+  imageData: string;
+  createdAt: Date;
+  memberName: string;
+};
+
+/** Add one or more photos uploaded by a group member. */
+export async function addGroupMemberPhotos(
+  groupId: number,
+  userId: string,
+  photos: string[]
+) {
+  if (!photos.length) return;
+  await db.insert(groupMemberPhotosTable).values(
+    photos.map((imageData) => ({
+      groupId,
+      userId,
+      imageData,
+    }))
+  );
+}
+
+/** Get all photos uploaded in a group by approved, non-banned members. */
+export async function getGroupMemberPhotos(
+  groupId: number
+): Promise<GroupMemberPhotoWithMember[]> {
+  return db
+    .select({
+      id: groupMemberPhotosTable.id,
+      userId: groupMemberPhotosTable.userId,
+      imageData: groupMemberPhotosTable.imageData,
+      createdAt: groupMemberPhotosTable.createdAt,
+      memberName: groupMembersTable.name,
+    })
+    .from(groupMemberPhotosTable)
+    .innerJoin(
+      groupMembersTable,
+      and(
+        eq(groupMembersTable.groupId, groupMemberPhotosTable.groupId),
+        eq(groupMembersTable.userId, groupMemberPhotosTable.userId)
+      )
+    )
+    .where(
+      and(
+        eq(groupMemberPhotosTable.groupId, groupId),
+        eq(groupMembersTable.isBanned, false),
+        eq(groupMembersTable.isMemberApproved, true)
+      )
+    )
+    .orderBy(sql`${groupMemberPhotosTable.createdAt} desc`);
 }
 
 /** Update a group by id. */
