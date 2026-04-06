@@ -106,15 +106,37 @@ export default async function GroupsPage({
                 No groups match your search. Try different name or city.
               </p>
             ) : (
-              <ul className="mt-3 space-y-3">
+              <ul className="mt-3 space-y-2">
                 {groups.map((group) => (
-                  <li key={group.id}>
-                    <Link
-                      href={`/group/${group.id}`}
-                      className="flex flex-col gap-1 rounded-md border border-border/40 bg-background p-3 transition-colors hover:bg-muted/50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="font-medium">{group.name}</span>
+                  <li
+                    key={group.id}
+                    className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3"
+                  >
+                    {group.profilePicture ? (
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                        <img
+                          src={group.profilePicture}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-xl">
+                        —
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/group/${group.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {group.name}
+                      </Link>
+                      <p className="text-muted-foreground text-sm">
+                        {group.city}
+                        {group.description ? ` · ${group.description}` : ""}
+                      </p>
+                      <div className="mt-1">
                         {group.ownerId === userId ? (
                           <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                             Owner
@@ -128,11 +150,13 @@ export default async function GroupsPage({
                             Not a member
                           </span>
                         )}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        {group.city}
-                        {group.description ? ` · ${group.description}` : ""}
-                      </span>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/group/${group.id}`}
+                      className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+                    >
+                      View
                     </Link>
                   </li>
                 ))}
@@ -169,9 +193,22 @@ export default async function GroupsPage({
               {sortedMemberGroups.map((group) => (
                 <li
                   key={group.id}
-                  className="flex items-center justify-between gap-3 rounded-md border border-border/40 bg-background p-3"
+                  className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3"
                 >
-                  <div className="min-w-0">
+                  {group.profilePicture ? (
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                      <img
+                        src={group.profilePicture}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-xl">
+                      —
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
                     <Link
                       href={`/group/${group.id}`}
                       className="font-medium text-primary hover:underline"

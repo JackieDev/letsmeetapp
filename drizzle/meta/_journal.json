@@ -50,6 +50,13 @@
       "when": 1775488200000,
       "tag": "0006_group_member_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775488800000,
+      "tag": "0007_groups_profile_picture_text",
+      "breakpoints": true
     }
   ]
 }

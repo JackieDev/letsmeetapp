@@ -40,10 +40,42 @@ export function ManageGroupDialog({
     setError(null);
     setIsSaving(true);
 
+    const form = e.currentTarget;
+    const uploadedFile = (form.elements.namedItem("groupProfilePictureFile") as HTMLInputElement)
+      ?.files?.[0];
+
+    let resolvedProfilePicture = profilePicture.trim() || "";
+    if (uploadedFile) {
+      if (!uploadedFile.type.startsWith("image/")) {
+        setIsSaving(false);
+        setError("Please upload an image file.");
+        return;
+      }
+      if (uploadedFile.size > 2 * 1024 * 1024) {
+        setIsSaving(false);
+        setError("Uploaded image must be 2MB or smaller.");
+        return;
+      }
+
+      try {
+        resolvedProfilePicture = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () =>
+            resolve(typeof reader.result === "string" ? reader.result : "");
+          reader.onerror = () => reject(new Error("Failed to read uploaded image."));
+          reader.readAsDataURL(uploadedFile);
+        });
+      } catch {
+        setIsSaving(false);
+        setError("Could not process uploaded image. Please try again.");
+        return;
+      }
+    }
+
     const result = await updateOwnedGroupDetails({
       groupId,
       name,
-      profilePicture: profilePicture.trim() || "",
+      profilePicture: resolvedProfilePicture,
     });
 
     setIsSaving(false);
@@ -115,6 +147,21 @@ export function ManageGroupDialog({
               placeholder="https://example.com/group-image.jpg"
               disabled={isSaving || isClosing}
             />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="group-profile-picture-file">
+              Upload profile picture (optional)
+            </Label>
+            <Input
+              id="group-profile-picture-file"
+              name="groupProfilePictureFile"
+              type="file"
+              accept="image/*"
+              disabled={isSaving || isClosing}
+            />
+            <p className="text-xs text-muted-foreground">
+              If both URL and upload are provided, the uploaded image is used.
+            </p>
           </div>
 
           {error ? (
