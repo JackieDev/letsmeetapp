@@ -45,10 +45,10 @@ export function LetsMeetMenu() {
           Calendar
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() => navigateWithHttpRequest("/groups/search")}
+          onSelect={() => navigateWithHttpRequest("/groups")}
           className="cursor-pointer"
         >
-          Search
+          Groups
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

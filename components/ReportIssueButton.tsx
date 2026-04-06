@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { submitReportIssue, type ReportIssueResult } from "@/actions/report-issue";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,10 +18,12 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 export function ReportIssueButton() {
+  const { user } = useUser();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const defaultEmail = user?.primaryEmailAddress?.emailAddress ?? "";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -78,6 +81,7 @@ export function ReportIssueButton() {
               id="report-email"
               name="email"
               type="email"
+              defaultValue={defaultEmail}
               placeholder="you@example.com"
               required
               disabled={isSubmitting}
