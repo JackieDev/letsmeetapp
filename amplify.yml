@@ -6,7 +6,7 @@ backend:
         - echo "Now running the build phase for the backend"
         - npm install -g @aws-amplify/cli
         - echo "# install jq"
-        - yum install jq -y
+        - sudo yum install jq -y
 frontend:
   phases:
     preBuild:
