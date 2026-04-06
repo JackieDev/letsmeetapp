@@ -4,6 +4,7 @@ import { Poppins } from "next/font/google";
 import {
   ClerkProvider,
   SignInButton,
+  SignOutButton,
   SignUpButton,
   SignedIn,
   SignedOut,
@@ -12,7 +13,6 @@ import { dark } from "@clerk/themes";
 import { ReportIssueButton } from "@/components/ReportIssueButton";
 import { buttonVariants } from "@/components/ui/button";
 import { LetsMeetMenu } from "./LetsMeetMenu";
-import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -59,6 +59,13 @@ export default function RootLayout({
               </div>
               <nav className="flex items-center gap-4 pr-4 ml-auto">
                 <ReportIssueButton />
+                <SignedIn>
+                  <SignOutButton>
+                    <button className={buttonVariants({ variant: "outline", size: "sm" })}>
+                      Sign Out
+                    </button>
+                  </SignOutButton>
+                </SignedIn>
                 <SignedOut>
                   <SignInButton mode="modal">
                     <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
@@ -71,20 +78,6 @@ export default function RootLayout({
                     </button>
                   </SignUpButton>
                 </SignedOut>
-                <SignedIn>
-                  <Link
-                    href="/groups/search"
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                  >
-                    Search Groups
-                  </Link>
-                  <Link
-                    href="/groups/new"
-                    className={cn(buttonVariants({ size: "sm" }))}
-                  >
-                    Create New Group
-                  </Link>
-                </SignedIn>
               </nav>
             </div>
           </header>
