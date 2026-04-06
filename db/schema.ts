@@ -30,7 +30,8 @@ export const membersTable = pgTable(
     userId: varchar({ length: 255 }).primaryKey(), // Clerk user ID
     email: varchar({ length: 255 }).notNull(),
     name: varchar({ length: 255 }), // Display name for the user (global)
-    profilePicture: varchar({ length: 500 }),
+    // Supports remote URLs and uploaded image data URLs.
+    profilePicture: text(),
     city: varchar({ length: 100 }),
     interests: text(), // free-form interests/bio field
 
@@ -71,6 +72,15 @@ export const groupMembersTable = pgTable("group_members", {
   isMemberApproved: boolean().default(true).notNull(),
   role: memberRoleEnum().default("member").notNull(),
   joinedAt: timestamp().defaultNow().notNull(),
+});
+
+// Photos uploaded by group members within a specific group.
+export const groupMemberPhotosTable = pgTable("group_member_photos", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  groupId: integer().notNull().references(() => groupsTable.id, { onDelete: "cascade" }),
+  userId: varchar({ length: 255 }).notNull(), // Clerk user ID
+  imageData: text().notNull(), // data URL for uploaded image
+  createdAt: timestamp().defaultNow().notNull(),
 });
 
 // Event attendees table (junction table for users and events)

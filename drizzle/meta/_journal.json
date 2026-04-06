@@ -36,6 +36,20 @@
       "when": 1775203712429,
       "tag": "0004_moaning_photon",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775487600000,
+      "tag": "0005_members_profile_picture_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775488200000,
+      "tag": "0006_group_member_photos",
+      "breakpoints": true
     }
   ]
 }

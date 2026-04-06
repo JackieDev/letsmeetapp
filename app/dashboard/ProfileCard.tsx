@@ -18,13 +18,35 @@ type Props = {
 
 export function ProfileCard({ member }: Props) {
   const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   async function handleSubmit(formData: FormData) {
+    setError(null);
     const name = formData.get("name")?.toString() ?? "";
-    const profilePicture = formData.get("profilePicture")?.toString() ?? "";
+    const currentProfilePicture = formData.get("currentProfilePicture")?.toString() ?? "";
     const city = formData.get("city")?.toString() ?? "";
     const interests = formData.get("interests")?.toString() ?? "";
+    const uploadedFile = formData.get("profilePictureFile");
+
+    let profilePicture = currentProfilePicture;
+    if (uploadedFile instanceof File && uploadedFile.size > 0) {
+      if (uploadedFile.size > 2 * 1024 * 1024) {
+        setError("Profile picture must be 2MB or smaller.");
+        return;
+      }
+      if (!uploadedFile.type.startsWith("image/")) {
+        setError("Please upload an image file.");
+        return;
+      }
+
+      profilePicture = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+        reader.onerror = () => reject(new Error("Failed to read uploaded image."));
+        reader.readAsDataURL(uploadedFile);
+      });
+    }
 
     startTransition(async () => {
       await updateCurrentMemberProfile({
@@ -116,17 +138,14 @@ export function ProfileCard({ member }: Props) {
             />
           </div>
 
+          <input type="hidden" name="currentProfilePicture" value={member?.profilePicture ?? ""} />
+
           <div className="space-y-1.5">
-            <label className="text-sm font-medium" htmlFor="profilePicture">
-              Profile picture URL
+            <label className="text-sm font-medium" htmlFor="profilePictureFile">
+              Upload profile picture
             </label>
-            <Input
-              id="profilePicture"
-              name="profilePicture"
-              type="url"
-              defaultValue={member?.profilePicture ?? ""}
-              placeholder="https://example.com/your-photo.jpg"
-            />
+            <Input id="profilePictureFile" name="profilePictureFile" type="file" accept="image/*" />
+            <p className="text-muted-foreground text-xs">PNG, JPG, WEBP, or GIF up to 2MB.</p>
           </div>
 
           <div className="space-y-1.5">
@@ -167,6 +186,11 @@ export function ProfileCard({ member }: Props) {
               Cancel
             </Button>
           </div>
+          {error ? (
+            <p className="text-destructive text-sm" role="alert">
+              {error}
+            </p>
+          ) : null}
         </form>
       ) : null}
     </div>

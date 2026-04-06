@@ -7,6 +7,7 @@ import {
   getGroupMemberCount,
   getGroupMembers,
   getApprovedGroupMembersWithProfiles,
+  getGroupMemberPhotos,
   isUserGroupMember,
   isUserBannedFromGroup,
 } from "@/db/queries/groups";
@@ -24,6 +25,7 @@ import { ManageGroupDialog } from "./ManageGroupDialog";
 import { JoinGroupButton } from "./JoinGroupButton";
 import { LeaveGroupButton } from "./LeaveGroupButton";
 import { ViewGroupMembersDialog } from "./ViewGroupMembersDialog";
+import { MemberPhotoUploadCard } from "./MemberPhotoUploadCard";
 
 export default async function GroupPage({
   params,
@@ -55,6 +57,7 @@ export default async function GroupPage({
     members,
     approvedMembers,
     isBanned,
+    memberPhotos,
   ] = await Promise.all([
     getEventsByGroupId(groupId),
     getGroupMemberCount(groupId),
@@ -64,6 +67,7 @@ export default async function GroupPage({
     getGroupMembers(groupId),
     getApprovedGroupMembersWithProfiles(groupId),
     isUserBannedFromGroup(groupId, userId),
+    getGroupMemberPhotos(groupId),
   ]);
 
   let ownerName: string = "Unknown";
@@ -211,6 +215,35 @@ export default async function GroupPage({
               ))}
             </ul>
           </div>
+        ) : null}
+
+        {isMember ? (
+          <>
+            <MemberPhotoUploadCard groupId={groupId} />
+            <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+              <h2 className="text-lg font-medium">Shared photos</h2>
+              {memberPhotos.length === 0 ? (
+                <p className="text-muted-foreground mt-2 text-sm">No photos uploaded yet.</p>
+              ) : (
+                <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {memberPhotos.map((photo) => (
+                    <li key={photo.id} className="space-y-1">
+                      <div className="overflow-hidden rounded-md border border-border/40 bg-muted">
+                        <img
+                          src={photo.imageData}
+                          alt={`Uploaded by ${photo.memberName}`}
+                          className="h-32 w-full object-cover"
+                        />
+                      </div>
+                      <p className="text-muted-foreground truncate text-xs">
+                        Uploaded by {photo.memberName}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
         ) : null}
       </div>
     </div>
