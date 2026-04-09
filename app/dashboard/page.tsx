@@ -135,16 +135,16 @@ export default async function DashboardPage({
           <Tabs defaultValue={defaultTab}>
             <TabsList className="w-full justify-start">
               <TabsTrigger value="profile" asChild>
-                <Link href="/dashboard?tab=profile">Your profile</Link>
+                <Link href="/dashboard?tab=profile">Profile</Link>
+              </TabsTrigger>
+              <TabsTrigger value="events" asChild>
+                <Link href="/dashboard?tab=events">Attending Events</Link>
               </TabsTrigger>
               <TabsTrigger value="groups" asChild>
                 <Link href="/dashboard?tab=groups">Groups</Link>
               </TabsTrigger>
               <TabsTrigger value="calendar" asChild>
                 <Link href="/dashboard?tab=calendar">Calendar</Link>
-              </TabsTrigger>
-              <TabsTrigger value="events" asChild>
-                <Link href="/dashboard?tab=events">Attending Events</Link>
               </TabsTrigger>
               <TabsTrigger value="messages" asChild>
                 <Link href="/dashboard?tab=messages">Messages</Link>
