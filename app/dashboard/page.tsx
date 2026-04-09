@@ -9,9 +9,11 @@ import { LeaveGroupButton } from "@/app/group/[id]/LeaveGroupButton";
 import { ensureMemberForUser } from "@/db/queries/members";
 import { updateMemberBillingStatus } from "@/db/queries/billing";
 import { getMessagesForUser } from "@/db/queries/messages";
+import { getNotificationsForUser, getUnreadNotificationCount } from "@/db/queries/notifications";
 import { ProfileCard } from "./ProfileCard";
 import { MessagesTab } from "./MessagesTab";
 import { PendingGroupsAdminTab } from "./PendingGroupsAdminTab";
+import { NotificationsTab } from "./NotificationsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUserHasActivePaidSubscription } from "@/lib/clerk-billing";
 
@@ -27,7 +29,7 @@ export default async function DashboardPage({
 
   const params = await searchParams;
   const requestedTab = typeof params.tab === "string" ? params.tab : "profile";
-  const defaultTab = ["profile", "groups", "events", "messages", "admin-approvals"].includes(
+  const defaultTab = ["profile", "groups", "events", "messages", "notifications", "admin-approvals"].includes(
     requestedTab
   )
     ? requestedTab
@@ -76,6 +78,8 @@ export default async function DashboardPage({
   let allAttendingEvents: Awaited<ReturnType<typeof getEventsUserIsAttending>> = [];
   let memberGroups: Awaited<ReturnType<typeof getGroupsUserIsMemberOf>> = [];
   let messages: Awaited<ReturnType<typeof getMessagesForUser>> = [];
+  let notifications: Awaited<ReturnType<typeof getNotificationsForUser>> = [];
+  let unreadNotificationCount = 0;
 
   if (defaultTab === "events") {
     allAttendingEvents = await getEventsUserIsAttending(userId);
@@ -87,6 +91,12 @@ export default async function DashboardPage({
 
   if (defaultTab === "messages") {
     messages = await getMessagesForUser(userId, { limit: 150 });
+  }
+
+  if (defaultTab === "notifications") {
+    notifications = await getNotificationsForUser(userId);
+  } else {
+    unreadNotificationCount = await getUnreadNotificationCount(userId);
   }
 
   const attendingEvents = allAttendingEvents.filter(
@@ -140,6 +150,16 @@ export default async function DashboardPage({
               </TabsTrigger>
               <TabsTrigger value="messages" asChild>
                 <Link href="/dashboard?tab=messages">Messages</Link>
+              </TabsTrigger>
+              <TabsTrigger value="notifications" asChild>
+                <Link href="/dashboard?tab=notifications">
+                  Notifications
+                  {unreadNotificationCount > 0 && (
+                    <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground leading-none">
+                      {unreadNotificationCount}
+                    </span>
+                  )}
+                </Link>
               </TabsTrigger>
               {isGroupApprover ? (
                 <TabsTrigger value="admin-approvals" asChild>
@@ -271,6 +291,18 @@ export default async function DashboardPage({
             {defaultTab === "messages" ? (
               <TabsContent value="messages">
                 <MessagesTab messages={messages} currentUserId={userId} />
+              </TabsContent>
+            ) : null}
+
+            {defaultTab === "notifications" ? (
+              <TabsContent value="notifications">
+                <NotificationsTab
+                  notifications={notifications.map((n) => ({
+                    ...n,
+                    readAt: n.readAt ? n.readAt.toISOString() : null,
+                    createdAt: n.createdAt.toISOString(),
+                  }))}
+                />
               </TabsContent>
             ) : null}
 

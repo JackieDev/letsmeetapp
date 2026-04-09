@@ -7,6 +7,8 @@ import {
   getApprovedGroup,
   isUserGroupMember,
   isUserBannedFromGroup,
+  getApprovedGroupMembersWithProfiles,
+  getGroupMemberByUserId,
 } from "@/db/queries/groups";
 import {
   getEventById,
@@ -18,6 +20,7 @@ import {
   deleteEventAttendee,
   deleteEventById,
 } from "@/db/queries/events";
+import { insertNotifications, insertNotification } from "@/db/queries/notifications";
 
 const createEventSchema = z.object({
   groupId: z.number().int().positive(),
@@ -85,6 +88,20 @@ export async function createEvent(
 
   await insertEventAttendee({ eventId: event.id, userId });
 
+  // Notify all approved group members (except the organizer) about the new event.
+  const members = await getApprovedGroupMembersWithProfiles(parsed.data.groupId);
+  if (members.length > 0) {
+    await insertNotifications(
+      members.map((m) => ({
+        userId: m.userId,
+        type: "new_event" as const,
+        message: `A new event "${parsed.data.name}" was created in ${group.name}.`,
+        groupId: parsed.data.groupId,
+        eventId: event.id,
+      }))
+    );
+  }
+
   revalidatePath(`/group/${parsed.data.groupId}`);
 
   return { success: true };
@@ -150,6 +167,20 @@ export async function attendEvent(
   }
 
   await insertEventAttendee({ eventId: parsed.data.eventId, userId });
+
+  // Notify the event organizer (if they are not the one signing up).
+  if (event.organizerId !== userId) {
+    const member = await getGroupMemberByUserId(event.groupId, userId);
+    const actorName = member?.name ?? "A member";
+    await insertNotification({
+      userId: event.organizerId,
+      type: "attendee_signed_up",
+      message: `${actorName} signed up for your event "${event.name}".`,
+      groupId: event.groupId,
+      eventId: event.id,
+    });
+  }
+
   revalidatePath(`/group/${event.groupId}`);
   revalidatePath(`/group/${event.groupId}/event/${event.id}`);
 
@@ -198,6 +229,20 @@ export async function cancelEventAttendance(
   }
 
   await deleteEventAttendee(parsed.data.eventId, userId);
+
+  // Notify the event organizer (if they are not the one canceling).
+  if (event.organizerId !== userId) {
+    const member = await getGroupMemberByUserId(event.groupId, userId);
+    const actorName = member?.name ?? "A member";
+    await insertNotification({
+      userId: event.organizerId,
+      type: "attendee_dropped_out",
+      message: `${actorName} dropped out of your event "${event.name}".`,
+      groupId: event.groupId,
+      eventId: event.id,
+    });
+  }
+
   revalidatePath(`/group/${event.groupId}`);
   revalidatePath(`/group/${event.groupId}/event/${event.id}`);
 
