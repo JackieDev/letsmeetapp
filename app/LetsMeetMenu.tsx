@@ -39,7 +39,7 @@ export function LetsMeetMenu() {
           Dashboard
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() => navigateWithHttpRequest("/dashboard?tab=calendar")}
+          onSelect={() => navigateWithHttpRequest("/calendar")}
           className="cursor-pointer"
         >
           Calendar
@@ -48,7 +48,7 @@ export function LetsMeetMenu() {
           onSelect={() => navigateWithHttpRequest("/groups")}
           className="cursor-pointer"
         >
-          Groups
+          Search Groups
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
