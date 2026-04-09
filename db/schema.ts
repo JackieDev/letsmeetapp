@@ -110,3 +110,22 @@ export const messagesTable = pgTable("messages", {
   createdAt: timestamp().defaultNow().notNull(),
   readAt: timestamp(),
 });
+
+// Enum for in-app notification types
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "new_event",
+  "attendee_signed_up",
+  "attendee_dropped_out",
+]);
+
+// In-app notifications
+export const notificationsTable = pgTable("notifications", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  userId: varchar({ length: 255 }).notNull(), // Clerk user ID — recipient
+  type: notificationTypeEnum().notNull(),
+  message: text().notNull(),
+  groupId: integer().references(() => groupsTable.id, { onDelete: "cascade" }),
+  eventId: integer().references(() => eventsTable.id, { onDelete: "cascade" }),
+  readAt: timestamp(),
+  createdAt: timestamp().defaultNow().notNull(),
+});
