@@ -3,9 +3,7 @@ import Link from "next/link";
 import { Poppins } from "next/font/google";
 import {
   ClerkProvider,
-  SignInButton,
   SignOutButton,
-  SignUpButton,
   SignedIn,
   SignedOut,
 } from "@clerk/nextjs";
@@ -66,18 +64,6 @@ export default function RootLayout({
                     </button>
                   </SignOutButton>
                 </SignedIn>
-                <SignedOut>
-                  <SignInButton mode="modal">
-                    <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
-                      Sign In
-                    </button>
-                  </SignInButton>
-                  <SignUpButton mode="modal" forceRedirectUrl="/billing">
-                    <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
-                      Sign Up
-                    </button>
-                  </SignUpButton>
-                </SignedOut>
               </nav>
             </div>
           </header>

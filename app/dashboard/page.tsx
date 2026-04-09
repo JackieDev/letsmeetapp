@@ -138,13 +138,13 @@ export default async function DashboardPage({
                 <Link href="/dashboard?tab=profile">Your profile</Link>
               </TabsTrigger>
               <TabsTrigger value="groups" asChild>
-                <Link href="/dashboard?tab=groups">Groups you&apos;re in</Link>
+                <Link href="/dashboard?tab=groups">Groups</Link>
               </TabsTrigger>
               <TabsTrigger value="calendar" asChild>
                 <Link href="/dashboard?tab=calendar">Calendar</Link>
               </TabsTrigger>
               <TabsTrigger value="events" asChild>
-                <Link href="/dashboard?tab=events">Events you&apos;re signed up for</Link>
+                <Link href="/dashboard?tab=events">Attending Events</Link>
               </TabsTrigger>
               <TabsTrigger value="messages" asChild>
                 <Link href="/dashboard?tab=messages">Messages</Link>
