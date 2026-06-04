@@ -1,0 +1,15 @@
+{
+  "providers": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-letsmeetapp-dev-34860-authRole",
+      "UnauthRoleArn": "arn:aws:iam::061039802404:role/amplify-letsmeetapp-dev-34860-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::061039802404:role/amplify-letsmeetapp-dev-34860-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-letsmeetapp-dev-34860-deployment",
+      "UnauthRoleName": "amplify-letsmeetapp-dev-34860-unauthRole",
+      "StackName": "amplify-letsmeetapp-dev-34860",
+      "StackId": "arn:aws:cloudformation:us-east-1:061039802404:stack/amplify-letsmeetapp-dev-34860/beee11c0-30d0-11f1-84fb-1206a465a465",
+      "AmplifyAppId": "dnqa7orfls936"
+    }
+  }
+}

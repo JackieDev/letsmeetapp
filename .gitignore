@@ -45,3 +45,13 @@ next-env.d.ts
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+.vscode/
+
+amplify/.config/
+amplify/README.md
+amplify/hooks/
+amplify/team-provider-info.json

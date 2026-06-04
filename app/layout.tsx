@@ -42,7 +42,7 @@ export default function RootLayout({
       }}
     >
       <html lang="en" className="dark">
-        <body className={`${poppins.variable} antialiased`}>
+        <body className={`${poppins.variable} flex min-h-screen flex-col antialiased`}>
           <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex h-14 w-full items-center">
               <div className="flex flex-1 items-center pl-4">
@@ -67,7 +67,12 @@ export default function RootLayout({
               </nav>
             </div>
           </header>
-          {children}
+          <main className="flex-1">{children}</main>
+          <footer className="border-t border-border/40 px-4 py-6 text-center">
+            <p className="text-base text-muted-foreground">
+              Start something! It could be a massive flop, massive or something in between.
+            </p>
+          </footer>
         </body>
       </html>
     </ClerkProvider>
