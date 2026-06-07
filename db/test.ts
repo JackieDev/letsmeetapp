@@ -1,4 +1,5 @@
-import "dotenv/config";
+import { loadProductionEnv } from "../lib/load-production-env";
+loadProductionEnv();
 import {
   insertGroup,
   getGroups,
