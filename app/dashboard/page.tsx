@@ -51,10 +51,12 @@ export default async function DashboardPage({
     !member.isPaidSubscriber || (billingPeriodEnd !== null && billingPeriodEnd < now);
 
   if (shouldVerifyBilling) {
-    const { isPaidSubscriber, subscription, paidItem } =
-      await getUserHasActivePaidSubscription(userId);
+    const billingCheck = await getUserHasActivePaidSubscription(userId).catch(
+      () => ({ isPaidSubscriber: false, subscription: null, paidItem: null })
+    );
+    const { isPaidSubscriber, subscription, paidItem } = billingCheck;
 
-    if (isPaidSubscriber && paidItem) {
+    if (isPaidSubscriber && paidItem && subscription) {
       await updateMemberBillingStatus({
         userId,
         isPaidSubscriber: true,

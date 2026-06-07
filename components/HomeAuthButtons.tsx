@@ -11,7 +11,9 @@ export function HomeAuthButtons() {
       <SignInButton
         mode="modal"
         forceRedirectUrl="/dashboard"
+        fallbackRedirectUrl="/dashboard"
         signUpForceRedirectUrl="/billing"
+        signUpFallbackRedirectUrl="/billing"
       >
         <button type="button" className={buttonClassName}>
           Sign In
@@ -20,7 +22,9 @@ export function HomeAuthButtons() {
       <SignUpButton
         mode="modal"
         forceRedirectUrl="/billing"
+        fallbackRedirectUrl="/billing"
         signInForceRedirectUrl="/dashboard"
+        signInFallbackRedirectUrl="/dashboard"
       >
         <button type="button" className={buttonClassName}>
           Sign Up
