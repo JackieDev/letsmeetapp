@@ -29,6 +29,8 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/billing"
       appearance={{
         baseTheme: dark,
       }}

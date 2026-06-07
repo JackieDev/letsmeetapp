@@ -15,34 +15,24 @@ export function SiteHeader() {
     <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 w-full items-center">
         <div className="flex flex-1 items-center pl-4">
-          {isHomePage ? (
+          <SignedIn>
+            <LetsMeetMenu />
+          </SignedIn>
+          <SignedOut>
             <Link href="/" className="font-semibold transition-opacity hover:opacity-80">
               LetsMeet
             </Link>
-          ) : (
-            <>
-              <SignedIn>
-                <LetsMeetMenu />
-              </SignedIn>
-              <SignedOut>
-                <Link href="/" className="font-semibold transition-opacity hover:opacity-80">
-                  LetsMeet
-                </Link>
-              </SignedOut>
-            </>
-          )}
+          </SignedOut>
         </div>
         <nav className="ml-auto flex items-center gap-4 pr-4">
           <ReportIssueButton />
-          {!isHomePage && (
-            <SignedIn>
-              <SignOutButton>
-                <button className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Sign Out
-                </button>
-              </SignOutButton>
-            </SignedIn>
-          )}
+          <SignedIn>
+            <SignOutButton signOutOptions={{ redirectUrl: isHomePage ? "/" : undefined }}>
+              <button className={buttonVariants({ variant: "outline", size: "sm" })}>
+                Sign Out
+              </button>
+            </SignOutButton>
+          </SignedIn>
         </nav>
       </div>
     </header>

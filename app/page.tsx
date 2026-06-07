@@ -1,6 +1,13 @@
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { HomeAuthButtons } from "@/components/HomeAuthButtons";
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth();
+  if (userId) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center gap-[1.345rem] px-4">
       <div className="flex flex-col items-center gap-[0.504rem] text-center">
