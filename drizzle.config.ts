@@ -1,7 +1,5 @@
-import { loadProductionEnv } from "./lib/load-production-env";
-import { defineConfig } from "drizzle-kit";
-
-loadProductionEnv();
+import 'dotenv/config';
+import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
   out: './drizzle',

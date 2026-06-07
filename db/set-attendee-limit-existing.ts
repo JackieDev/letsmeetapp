@@ -1,5 +1,4 @@
-import { loadProductionEnv } from "../lib/load-production-env";
-loadProductionEnv();
+import "dotenv/config";
 import { setAttendeeLimitWhereNull } from "./queries/events";
 
 async function main() {
