@@ -6,40 +6,46 @@ import { useEffect, useRef } from "react";
 const buttonClassName =
   "inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
 
+const BILLING_PATH = "/billing";
+
 const signUpRedirectProps = {
-  forceRedirectUrl: "/billing",
-  fallbackRedirectUrl: "/billing",
-  signInForceRedirectUrl: "/dashboard",
-  signInFallbackRedirectUrl: "/dashboard",
+  forceRedirectUrl: BILLING_PATH,
+  fallbackRedirectUrl: BILLING_PATH,
+  signInForceRedirectUrl: BILLING_PATH,
+  signInFallbackRedirectUrl: BILLING_PATH,
 } as const;
 
 const signInRedirectProps = {
-  forceRedirectUrl: "/dashboard",
-  fallbackRedirectUrl: "/dashboard",
-  signUpForceRedirectUrl: "/billing",
-  signUpFallbackRedirectUrl: "/billing",
+  forceRedirectUrl: BILLING_PATH,
+  fallbackRedirectUrl: BILLING_PATH,
+  signUpForceRedirectUrl: BILLING_PATH,
+  signUpFallbackRedirectUrl: BILLING_PATH,
 } as const;
 
 export function HomeAuthButtons() {
   const { isSignedIn, isLoaded } = useAuth();
   const { openSignIn, openSignUp } = useClerk();
   const pendingRedirectRef = useRef<string | null>(null);
+  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || !pendingRedirectRef.current) return;
+    if (!isLoaded || !isSignedIn || hasRedirectedRef.current) return;
 
-    const destination = pendingRedirectRef.current;
+    hasRedirectedRef.current = true;
+    const destination = pendingRedirectRef.current ?? BILLING_PATH;
     pendingRedirectRef.current = null;
     window.location.assign(destination);
   }, [isLoaded, isSignedIn]);
 
   function handleSignUp() {
-    pendingRedirectRef.current = "/billing";
+    hasRedirectedRef.current = false;
+    pendingRedirectRef.current = BILLING_PATH;
     openSignUp(signUpRedirectProps);
   }
 
   function handleSignIn() {
-    pendingRedirectRef.current = "/dashboard";
+    hasRedirectedRef.current = false;
+    pendingRedirectRef.current = BILLING_PATH;
     openSignIn(signInRedirectProps);
   }
 

@@ -23,9 +23,9 @@ frontend:
         - echo "RESEND_API_KEY=$(echo $secrets | jq -r '.RESEND_API_KEY')" >> .env.production   
         - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_ID=$(echo $secrets | jq -r '.NEXT_PUBLIC_CLERK_BILLING_PLAN_ID')" >> .env.production
         - echo "CLERK_WEBHOOK_SIGNING_SECRET=$(echo $secrets | jq -r '.CLERK_WEBHOOK_SIGNING_SECRET')" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/dashboard" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/billing" >> .env.production
         - echo "NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/billing" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/dashboard" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/billing" >> .env.production
         - echo "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/billing" >> .env.production
         - npm run build
   artifacts:
