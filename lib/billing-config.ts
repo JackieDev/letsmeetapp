@@ -3,7 +3,10 @@ export const CLERK_BILLING_PLAN_ID = process.env
 
 export type ClerkBillingPlanPeriod = "month" | "annual";
 
-export const CLERK_BILLING_PLAN_PERIOD: ClerkBillingPlanPeriod = "annual";
+export const CLERK_BILLING_PLAN_PERIOD: ClerkBillingPlanPeriod =
+  process.env.NEXT_PUBLIC_CLERK_BILLING_PLAN_PERIOD === "annual"
+    ? "annual"
+    : "month";
 
 export function assertClerkBillingConfig() {
   if (!CLERK_BILLING_PLAN_ID) {
