@@ -2,6 +2,7 @@
 
 import { SignedIn } from "@clerk/nextjs";
 import { CheckoutButton, usePlans } from "@clerk/nextjs/experimental";
+import { syncMemberAfterPayment } from "@/actions/billing";
 import {
   CLERK_BILLING_PLAN_ID,
   CLERK_BILLING_PLAN_PERIOD,
@@ -116,6 +117,9 @@ export function BillingPlanPicker() {
                   planId={plan.id}
                   planPeriod={CLERK_BILLING_PLAN_PERIOD}
                   newSubscriptionRedirectUrl="/dashboard"
+                  onSubscriptionComplete={async () => {
+                    await syncMemberAfterPayment();
+                  }}
                 >
                   <button type="button" className={subscribeButtonClassName}>
                     Subscribe to {plan.name}

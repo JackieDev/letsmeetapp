@@ -13,7 +13,7 @@ export function BillingCheckout() {
 
       <div className="text-sm text-muted-foreground">
         <Link href="/dashboard" className="underline underline-offset-4 hover:opacity-80">
-          Back to dashboard
+          To dashboard
         </Link>
       </div>
     </div>
