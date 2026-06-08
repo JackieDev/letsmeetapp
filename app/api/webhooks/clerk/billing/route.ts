@@ -4,7 +4,8 @@ import { ensureMemberForUser } from "@/db/queries/members";
 import { updateMemberBillingStatus } from "@/db/queries/billing";
 import {
   CLERK_BILLING_PLAN_ID,
-  // assertClerkBillingConfig,
+  CLERK_BILLING_PLAN_SLUG,
+  isBillingPlanConfigured,
 } from "@/lib/billing-config";
 
 export const runtime = "nodejs";
@@ -29,7 +30,7 @@ function extractFirstAvailable(...values: Array<unknown>): string | null {
 
 export async function POST(request: Request) {
   // If billing isn't configured, just acknowledge webhooks.
-  if (!CLERK_BILLING_PLAN_ID) {
+  if (!isBillingPlanConfigured()) {
     return NextResponse.json({ received: true, ignored: true });
   }
 
@@ -100,11 +101,22 @@ export async function POST(request: Request) {
   let nextIsPaidSubscriber: boolean | null = null;
   let nextBillingStatus: string | null = null;
 
+  const planSlug = extractFirstAvailable(
+    plan.slug,
+    (subscriptionItem.plan && typeof subscriptionItem.plan === "object"
+      ? (subscriptionItem.plan as UnknownRecord).slug
+      : null)
+  );
+
+  const isConfiguredPlan =
+    (CLERK_BILLING_PLAN_ID && planId === CLERK_BILLING_PLAN_ID) ||
+    (CLERK_BILLING_PLAN_SLUG && planSlug === CLERK_BILLING_PLAN_SLUG);
+
   // Only react to events for the plan we charge for.
   if (eventType?.startsWith("subscriptionItem.")) {
     const base = eventType.replace("subscriptionItem.", "");
 
-    if (planId === CLERK_BILLING_PLAN_ID) {
+    if (isConfiguredPlan) {
       switch (eventType) {
         case "subscriptionItem.active": {
           nextIsPaidSubscriber = true;
