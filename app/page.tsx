@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { HomeAuthButtons } from "@/components/HomeAuthButtons";
 import { getMemberAccessStatus } from "@/lib/member-access";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const { userId } = await auth();
   if (userId) {

@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { ensureMemberForUser, getMemberByUserId, type Member } from "@/db/queries/members";
 import { getUserHasActivePaidSubscription } from "@/lib/clerk-billing";
 import {
@@ -15,36 +15,44 @@ export type MemberAccessStatus = {
   trialEndsAt: Date | null;
 };
 
-async function resolveSignedUpAt(
-  member: Member,
-  clerkSignedUpAt: Date | null
-): Promise<Date | null> {
+async function getClerkSignUpDate(userId: string): Promise<Date | null> {
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    return user.createdAt ? new Date(user.createdAt) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveSignedUpAt(member: Member, userId: string): Promise<Date> {
   if (member.signedUpAt) return new Date(member.signedUpAt);
-  return clerkSignedUpAt;
+
+  const clerkSignedUpAt = await getClerkSignUpDate(userId);
+  if (clerkSignedUpAt) {
+    const updated = await ensureMemberForUser({ userId, signedUpAt: clerkSignedUpAt });
+    return updated.signedUpAt ? new Date(updated.signedUpAt) : clerkSignedUpAt;
+  }
+
+  // Last resort: start trial from first successful access check.
+  const trialStart = new Date();
+  const updated = await ensureMemberForUser({ userId, signedUpAt: trialStart });
+  return updated.signedUpAt ? new Date(updated.signedUpAt) : trialStart;
 }
 
 export async function getMemberAccessStatus(userId: string): Promise<MemberAccessStatus> {
-  const clerkUser = await currentUser();
-  const clerkSignedUpAt = clerkUser?.createdAt ? new Date(clerkUser.createdAt) : null;
-
   let member = await getMemberByUserId(userId);
   if (!member) {
-    member = await ensureMemberForUser({
-      userId,
-      email: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
-      profilePicture: clerkUser?.imageUrl ?? null,
-      signedUpAt: clerkSignedUpAt,
-    });
-  } else if (!member.signedUpAt && clerkSignedUpAt) {
+    const clerkSignedUpAt = await getClerkSignUpDate(userId);
     member = await ensureMemberForUser({
       userId,
       signedUpAt: clerkSignedUpAt,
     });
   }
 
-  const signedUpAt = await resolveSignedUpAt(member, clerkSignedUpAt);
-  const trialEndsAt = signedUpAt ? getTrialEndsAt(signedUpAt) : null;
-  const isInFreeTrial = signedUpAt ? isWithinFreeTrial(signedUpAt) : false;
+  const signedUpAt = await resolveSignedUpAt(member, userId);
+  const trialEndsAt = getTrialEndsAt(signedUpAt);
+  const isInFreeTrial = isWithinFreeTrial(signedUpAt);
 
   let isPaidSubscriber = member.isPaidSubscriber;
   if (!isPaidSubscriber) {

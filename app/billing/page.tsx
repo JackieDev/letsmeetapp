@@ -26,36 +26,34 @@ function BillingPageContent({ trialEndsAt }: { trialEndsAt: Date | null }) {
 }
 
 export default async function BillingPage() {
-  const { userId } = await auth();
+  const { userId } = await auth.protect();
   let trialEndsAt: Date | null = null;
 
-  if (userId) {
-    const access = await getMemberAccessStatus(userId);
-    const { member, isInFreeTrial, isPaidSubscriber } = access;
-    trialEndsAt = access.trialEndsAt;
+  const access = await getMemberAccessStatus(userId);
+  const { member, isInFreeTrial, isPaidSubscriber } = access;
+  trialEndsAt = access.trialEndsAt;
 
-    if (isInFreeTrial) {
-      redirect("/dashboard");
-    }
+  if (isInFreeTrial) {
+    redirect("/dashboard");
+  }
 
-    if (isPaidSubscriber || member.isPaidSubscriber) {
-      redirect("/dashboard");
-    }
+  if (isPaidSubscriber || member.isPaidSubscriber) {
+    redirect("/dashboard");
+  }
 
-    const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 3);
-    if (billingCheck.isPaidSubscriber && billingCheck.paidItem && billingCheck.subscription) {
-      await activateMemberSubscription({
-        userId,
-        billingPlanId:
-          billingCheck.paidItem.planId ?? billingCheck.paidItem.plan?.id ?? "",
-        billingSubscriptionId: billingCheck.subscription.id,
-        billingStatus: billingCheck.subscription.status,
-        billingPeriodEnd: billingCheck.paidItem.periodEnd
-          ? new Date(billingCheck.paidItem.periodEnd)
-          : null,
-      });
-      redirect("/dashboard");
-    }
+  const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 3);
+  if (billingCheck.isPaidSubscriber && billingCheck.paidItem && billingCheck.subscription) {
+    await activateMemberSubscription({
+      userId,
+      billingPlanId:
+        billingCheck.paidItem.planId ?? billingCheck.paidItem.plan?.id ?? "",
+      billingSubscriptionId: billingCheck.subscription.id,
+      billingStatus: billingCheck.subscription.status,
+      billingPeriodEnd: billingCheck.paidItem.periodEnd
+        ? new Date(billingCheck.paidItem.periodEnd)
+        : null,
+    });
+    redirect("/dashboard");
   }
 
   return (

@@ -1,19 +1,9 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 export function BillingAuthGate({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      router.replace("/");
-    }
-  }, [isLoaded, isSignedIn, router]);
 
   if (!isLoaded) {
     return (
@@ -24,7 +14,13 @@ export function BillingAuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!isSignedIn) {
-    return null;
+    return (
+      <div className="container mx-auto max-w-screen-md px-4 py-10">
+        <p className="text-muted-foreground">
+          Your session is still loading. Refresh the page, or sign in again from the home page.
+        </p>
+      </div>
+    );
   }
 
   return children;

@@ -26,10 +26,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const { userId } = await auth();
-  if (!userId) {
-    redirect("/");
-  }
+  const { userId } = await auth.protect();
 
   const params = await searchParams;
   const requestedTab = typeof params.tab === "string" ? params.tab : "profile";
