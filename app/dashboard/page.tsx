@@ -6,7 +6,6 @@ import { getEventsUserIsAttending } from "@/db/queries/events";
 import { getGroupsUserIsMemberOf, getPendingGroupsForApproval } from "@/db/queries/groups";
 import { buttonVariants } from "@/components/ui/button";
 import { LeaveGroupButton } from "@/app/group/[id]/LeaveGroupButton";
-import { ensureMemberForUser } from "@/db/queries/members";
 import { getMessagesForUser } from "@/db/queries/messages";
 import { getNotificationsForUser, getUnreadNotificationCount } from "@/db/queries/notifications";
 import { ProfileCard } from "./ProfileCard";
@@ -17,6 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getMemberByUserId } from "@/db/queries/members";
 import { activateMemberSubscription } from "@/db/queries/billing";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
+import { formatTrialEndDate } from "@/lib/free-trial";
+import { getMemberAccessStatus } from "@/lib/member-access";
 
 export const dynamic = "force-dynamic";
 
@@ -38,37 +39,38 @@ export default async function DashboardPage({
     ? requestedTab
     : "profile";
 
-  // Ensure we have a row in the members table for this user.
-  const member = await ensureMemberForUser({
-    userId,
-    // Avoid Clerk network fetch on every tab navigation.
-    // These fields are best-effort and can be edited in profile later.
-    email: null,
-    profilePicture: null,
-  });
+  const access = await getMemberAccessStatus(userId);
+  const { member, hasAccess, isInFreeTrial, trialEndsAt } = access;
 
-  // Gate access by Clerk Billing subscription.
+  if (!hasAccess) {
+    redirect("/billing");
+  }
+
   const now = new Date();
-  const billingPeriodEnd = member.billingPeriodEnd ? new Date(member.billingPeriodEnd) : null;
-  const shouldVerifyBilling =
-    !member.isPaidSubscriber || (billingPeriodEnd !== null && billingPeriodEnd < now);
 
-  if (shouldVerifyBilling) {
-    const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 3);
-    const { isPaidSubscriber, subscription, paidItem } = billingCheck;
+  // During the free trial, skip payment checks. After trial, verify Clerk Billing.
+  if (!isInFreeTrial) {
+    const billingPeriodEnd = member.billingPeriodEnd ? new Date(member.billingPeriodEnd) : null;
+    const shouldVerifyBilling =
+      !member.isPaidSubscriber || (billingPeriodEnd !== null && billingPeriodEnd < now);
 
-    if (isPaidSubscriber && paidItem && subscription) {
-      await activateMemberSubscription({
-        userId,
-        billingPlanId: paidItem.planId ?? paidItem.plan?.id ?? "",
-        billingSubscriptionId: subscription.id,
-        billingStatus: subscription.status,
-        billingPeriodEnd: paidItem.periodEnd ? new Date(paidItem.periodEnd) : null,
-      });
-    } else {
-      const refreshedMember = await getMemberByUserId(userId);
-      if (!refreshedMember?.isPaidSubscriber) {
-        redirect("/billing");
+    if (shouldVerifyBilling) {
+      const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 3);
+      const { isPaidSubscriber, subscription, paidItem } = billingCheck;
+
+      if (isPaidSubscriber && paidItem && subscription) {
+        await activateMemberSubscription({
+          userId,
+          billingPlanId: paidItem.planId ?? paidItem.plan?.id ?? "",
+          billingSubscriptionId: subscription.id,
+          billingStatus: subscription.status,
+          billingPeriodEnd: paidItem.periodEnd ? new Date(paidItem.periodEnd) : null,
+        });
+      } else {
+        const refreshedMember = await getMemberByUserId(userId);
+        if (!refreshedMember?.isPaidSubscriber) {
+          redirect("/billing");
+        }
       }
     }
   }
@@ -139,6 +141,12 @@ export default async function DashboardPage({
             <h1 className="text-4xl font-semibold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground mt-1 text-lg">
               Welcome {welcomeName}. Manage your groups and events from here.
+              {isInFreeTrial && trialEndsAt ? (
+                <>
+                  {" "}
+                  Your account is free until {formatTrialEndDate(trialEndsAt)}.
+                </>
+              ) : null}
             </p>
           </div>
 

@@ -1,20 +1,23 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { activateMemberSubscription } from "@/db/queries/billing";
-import { ensureMemberForUser } from "@/db/queries/members";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
+import { formatTrialEndDate } from "@/lib/free-trial";
+import { getMemberAccessStatus } from "@/lib/member-access";
 import { BillingAuthGate } from "./BillingAuthGate";
 import { BillingCheckout } from "./BillingCheckout";
 
 export const dynamic = "force-dynamic";
 
-function BillingPageContent() {
+function BillingPageContent({ trialEndsAt }: { trialEndsAt: Date | null }) {
   return (
     <div className="container mx-auto max-w-screen-md flex flex-col gap-6 px-4 py-10">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Billing</h1>
         <p className="text-muted-foreground mt-2">
-          Subscribe to continue using the app.
+          {trialEndsAt
+            ? `Your free trial ended on ${formatTrialEndDate(trialEndsAt)}. Subscribe annually to continue using the app.`
+            : "Subscribe annually to continue using the app."}
         </p>
       </div>
       <BillingCheckout />
@@ -24,15 +27,18 @@ function BillingPageContent() {
 
 export default async function BillingPage() {
   const { userId } = await auth();
+  let trialEndsAt: Date | null = null;
 
   if (userId) {
-    const member = await ensureMemberForUser({
-      userId,
-      email: null,
-      profilePicture: null,
-    });
+    const access = await getMemberAccessStatus(userId);
+    const { member, isInFreeTrial, isPaidSubscriber } = access;
+    trialEndsAt = access.trialEndsAt;
 
-    if (member.isPaidSubscriber) {
+    if (isInFreeTrial) {
+      redirect("/dashboard");
+    }
+
+    if (isPaidSubscriber || member.isPaidSubscriber) {
       redirect("/dashboard");
     }
 
@@ -54,7 +60,7 @@ export default async function BillingPage() {
 
   return (
     <BillingAuthGate>
-      <BillingPageContent />
+      <BillingPageContent trialEndsAt={trialEndsAt} />
     </BillingAuthGate>
   );
 }

@@ -42,6 +42,7 @@ export const membersTable = pgTable(
     billingStatus: varchar({ length: 50 }), // e.g. active, past_due, canceled
     billingPeriodEnd: timestamp(), // When the current paid period ends (if known)
     isPaidSubscriber: boolean().default(false).notNull(),
+    signedUpAt: timestamp(), // Clerk account creation; used for the 6-month free trial
   },
   (t) => [unique("members_email_unique").on(t.email)]
 );

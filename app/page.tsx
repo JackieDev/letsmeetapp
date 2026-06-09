@@ -1,15 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { HomeAuthButtons } from "@/components/HomeAuthButtons";
-import { getUserHasActivePaidSubscription } from "@/lib/clerk-billing";
+import { getMemberAccessStatus } from "@/lib/member-access";
 
 export default async function Home() {
   const { userId } = await auth();
   if (userId) {
-    const { isPaidSubscriber } = await getUserHasActivePaidSubscription(userId).catch(
-      () => ({ isPaidSubscriber: false })
-    );
-    redirect(isPaidSubscriber ? "/dashboard" : "/billing");
+    const { hasAccess } = await getMemberAccessStatus(userId);
+    redirect(hasAccess ? "/dashboard" : "/billing");
   }
 
   return (

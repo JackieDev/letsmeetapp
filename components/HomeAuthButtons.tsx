@@ -6,20 +6,20 @@ import { useEffect, useRef } from "react";
 const buttonClassName =
   "inline-flex h-10 items-center justify-center rounded-md bg-primary px-[1.65rem] text-[0.91875rem] font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
 
-const BILLING_PATH = "/billing";
+const DASHBOARD_PATH = "/dashboard";
 
 const signUpRedirectProps = {
-  forceRedirectUrl: BILLING_PATH,
-  fallbackRedirectUrl: BILLING_PATH,
-  signInForceRedirectUrl: BILLING_PATH,
-  signInFallbackRedirectUrl: BILLING_PATH,
+  forceRedirectUrl: DASHBOARD_PATH,
+  fallbackRedirectUrl: DASHBOARD_PATH,
+  signInForceRedirectUrl: DASHBOARD_PATH,
+  signInFallbackRedirectUrl: DASHBOARD_PATH,
 } as const;
 
 const signInRedirectProps = {
-  forceRedirectUrl: BILLING_PATH,
-  fallbackRedirectUrl: BILLING_PATH,
-  signUpForceRedirectUrl: BILLING_PATH,
-  signUpFallbackRedirectUrl: BILLING_PATH,
+  forceRedirectUrl: DASHBOARD_PATH,
+  fallbackRedirectUrl: DASHBOARD_PATH,
+  signUpForceRedirectUrl: DASHBOARD_PATH,
+  signUpFallbackRedirectUrl: DASHBOARD_PATH,
 } as const;
 
 export function HomeAuthButtons() {
@@ -32,20 +32,20 @@ export function HomeAuthButtons() {
     if (!isLoaded || !isSignedIn || hasRedirectedRef.current) return;
 
     hasRedirectedRef.current = true;
-    const destination = pendingRedirectRef.current ?? BILLING_PATH;
+    const destination = pendingRedirectRef.current ?? DASHBOARD_PATH;
     pendingRedirectRef.current = null;
     window.location.assign(destination);
   }, [isLoaded, isSignedIn]);
 
   function handleSignUp() {
     hasRedirectedRef.current = false;
-    pendingRedirectRef.current = BILLING_PATH;
+    pendingRedirectRef.current = DASHBOARD_PATH;
     openSignUp(signUpRedirectProps);
   }
 
   function handleSignIn() {
     hasRedirectedRef.current = false;
-    pendingRedirectRef.current = BILLING_PATH;
+    pendingRedirectRef.current = DASHBOARD_PATH;
     openSignIn(signInRedirectProps);
   }
 
