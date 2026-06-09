@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { membersTable } from "@/db/schema";
+import { ensureMemberForUser } from "@/db/queries/members";
 
 export async function updateMemberBillingStatus(params: {
   userId: string;
@@ -34,3 +35,39 @@ export async function updateMemberBillingStatus(params: {
     .where(eq(membersTable.userId, userId));
 }
 
+/** Ensures a members row exists, then marks the user as a paid subscriber. */
+export async function activateMemberSubscription(params: {
+  userId: string;
+  email?: string | null;
+  profilePicture?: string | null;
+  billingPlanId: string;
+  billingCustomerId?: string | null;
+  billingSubscriptionId?: string | null;
+  billingStatus?: string | null;
+  billingPeriodEnd?: Date | null;
+}) {
+  const {
+    userId,
+    email,
+    profilePicture,
+    billingPlanId,
+    billingCustomerId,
+    billingSubscriptionId,
+    billingStatus,
+    billingPeriodEnd,
+  } = params;
+
+  await ensureMemberForUser({ userId, email, profilePicture });
+
+  await db
+    .update(membersTable)
+    .set({
+      isPaidSubscriber: true,
+      billingPlanId,
+      billingCustomerId: billingCustomerId ?? null,
+      billingSubscriptionId: billingSubscriptionId ?? null,
+      billingStatus: billingStatus ?? "active",
+      billingPeriodEnd: billingPeriodEnd ?? null,
+    })
+    .where(eq(membersTable.userId, userId));
+}

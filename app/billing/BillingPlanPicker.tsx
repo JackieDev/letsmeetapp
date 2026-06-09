@@ -117,7 +117,16 @@ export function BillingPlanPicker() {
                   planId={plan.id}
                   planPeriod={CLERK_BILLING_PLAN_PERIOD}
                   onSubscriptionComplete={async () => {
-                    await syncMemberAfterPayment({ planId: plan.id });
+                    const result = await syncMemberAfterPayment({ planId: plan.id });
+                    if (!result.ok) {
+                      const fallback = await fetch("/api/billing/sync", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ planId: plan.id }),
+                        credentials: "same-origin",
+                      });
+                      if (!fallback.ok) return;
+                    }
                     window.location.assign("/dashboard");
                   }}
                 >

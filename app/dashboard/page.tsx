@@ -7,7 +7,6 @@ import { getGroupsUserIsMemberOf, getPendingGroupsForApproval } from "@/db/queri
 import { buttonVariants } from "@/components/ui/button";
 import { LeaveGroupButton } from "@/app/group/[id]/LeaveGroupButton";
 import { ensureMemberForUser } from "@/db/queries/members";
-import { updateMemberBillingStatus } from "@/db/queries/billing";
 import { getMessagesForUser } from "@/db/queries/messages";
 import { getNotificationsForUser, getUnreadNotificationCount } from "@/db/queries/notifications";
 import { ProfileCard } from "./ProfileCard";
@@ -15,7 +14,11 @@ import { MessagesTab } from "./MessagesTab";
 import { PendingGroupsAdminTab } from "./PendingGroupsAdminTab";
 import { NotificationsTab } from "./NotificationsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getUserHasActivePaidSubscription } from "@/lib/clerk-billing";
+import { getMemberByUserId } from "@/db/queries/members";
+import { activateMemberSubscription } from "@/db/queries/billing";
+import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage({
   searchParams,
@@ -51,22 +54,22 @@ export default async function DashboardPage({
     !member.isPaidSubscriber || (billingPeriodEnd !== null && billingPeriodEnd < now);
 
   if (shouldVerifyBilling) {
-    const billingCheck = await getUserHasActivePaidSubscription(userId).catch(
-      () => ({ isPaidSubscriber: false, subscription: null, paidItem: null })
-    );
+    const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 3);
     const { isPaidSubscriber, subscription, paidItem } = billingCheck;
 
     if (isPaidSubscriber && paidItem && subscription) {
-      await updateMemberBillingStatus({
+      await activateMemberSubscription({
         userId,
-        isPaidSubscriber: true,
+        billingPlanId: paidItem.planId ?? paidItem.plan?.id ?? "",
         billingSubscriptionId: subscription.id,
-        billingPlanId: paidItem.planId,
         billingStatus: subscription.status,
         billingPeriodEnd: paidItem.periodEnd ? new Date(paidItem.periodEnd) : null,
       });
     } else {
-      redirect("/billing");
+      const refreshedMember = await getMemberByUserId(userId);
+      if (!refreshedMember?.isPaidSubscriber) {
+        redirect("/billing");
+      }
     }
   }
 

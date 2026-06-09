@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { activateMemberSubscription } from "@/db/queries/billing";
 import { ensureMemberForUser } from "@/db/queries/members";
-import { getUserHasActivePaidSubscription } from "@/lib/clerk-billing";
+import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
 import { BillingAuthGate } from "./BillingAuthGate";
 import { BillingCheckout } from "./BillingCheckout";
 
@@ -35,11 +36,18 @@ export default async function BillingPage() {
       redirect("/dashboard");
     }
 
-    const { isPaidSubscriber } = await getUserHasActivePaidSubscription(userId).catch(
-      () => ({ isPaidSubscriber: false })
-    );
-
-    if (isPaidSubscriber) {
+    const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 3);
+    if (billingCheck.isPaidSubscriber && billingCheck.paidItem && billingCheck.subscription) {
+      await activateMemberSubscription({
+        userId,
+        billingPlanId:
+          billingCheck.paidItem.planId ?? billingCheck.paidItem.plan?.id ?? "",
+        billingSubscriptionId: billingCheck.subscription.id,
+        billingStatus: billingCheck.subscription.status,
+        billingPeriodEnd: billingCheck.paidItem.periodEnd
+          ? new Date(billingCheck.paidItem.periodEnd)
+          : null,
+      });
       redirect("/dashboard");
     }
   }
