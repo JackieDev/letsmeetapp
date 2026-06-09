@@ -23,6 +23,7 @@ type BillingPlan = {
   hasBaseFee: boolean;
   publiclyVisible: boolean;
   fee: BillingMoneyAmount;
+  annualFee: BillingMoneyAmount | null;
   annualMonthlyFee: BillingMoneyAmount | null;
 };
 
@@ -51,7 +52,25 @@ function getPlansFromQuery(data: unknown): BillingPlan[] {
 }
 
 function isPaidPlan(plan: BillingPlan): boolean {
-  return plan.hasBaseFee && !plan.isDefault && plan.slug !== "free_user";
+  return (
+    plan.hasBaseFee &&
+    !plan.isDefault &&
+    plan.slug !== "free_user" &&
+    (plan.annualFee !== null || plan.annualMonthlyFee !== null)
+  );
+}
+
+function formatAnnualPrice(plan: BillingPlan): { amount: string; suffix: string } {
+  if (plan.annualFee) {
+    return { amount: formatMoney(plan.annualFee), suffix: "year" };
+  }
+  if (plan.annualMonthlyFee) {
+    return {
+      amount: formatMoney(plan.annualMonthlyFee),
+      suffix: "month, billed annually",
+    };
+  }
+  return { amount: formatMoney(plan.fee), suffix: "year" };
 }
 
 function matchesConfiguredPlan(plan: BillingPlan): boolean {
@@ -82,7 +101,7 @@ export function BillingPlanPicker() {
   if (plans.length === 0) {
     return (
       <p className="text-muted-foreground">
-        No paid plans are available. Add a user plan in Clerk Dashboard → Billing → Plans.
+        No annual paid plans are available. Enable annual pricing on a user plan in Clerk Dashboard → Billing → Plans.
       </p>
     );
   }
@@ -91,10 +110,7 @@ export function BillingPlanPicker() {
     <SignedIn>
       <ul className="flex flex-col gap-4">
         {plans.map((plan) => {
-          const price =
-            CLERK_BILLING_PLAN_PERIOD === "annual" && plan.annualMonthlyFee
-              ? formatMoney(plan.annualMonthlyFee)
-              : formatMoney(plan.fee);
+          const { amount: price, suffix: priceSuffix } = formatAnnualPrice(plan);
 
           return (
             <li
@@ -108,7 +124,7 @@ export function BillingPlanPicker() {
               <p className="mt-3 text-2xl font-semibold">
                 {price}
                 <span className="ml-1 text-sm font-normal text-muted-foreground">
-                  / {CLERK_BILLING_PLAN_PERIOD === "annual" ? "month, billed annually" : "month"}
+                  / {priceSuffix}
                 </span>
               </p>
               <div className="mt-6">

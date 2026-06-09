@@ -1,4 +1,4 @@
-export type ClerkBillingPlanPeriod = "month" | "annual";
+export type ClerkBillingPlanPeriod = "annual";
 
 function readPublicEnv(key: string): string | undefined {
   const raw = process.env[key];
@@ -16,10 +16,8 @@ export const CLERK_BILLING_PLAN_SLUG = readPublicEnv(
   "NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG"
 );
 
-export const CLERK_BILLING_PLAN_PERIOD: ClerkBillingPlanPeriod =
-  readPublicEnv("NEXT_PUBLIC_CLERK_BILLING_PLAN_PERIOD") === "annual"
-    ? "annual"
-    : "month";
+/** Billing is annual only. */
+export const CLERK_BILLING_PLAN_PERIOD: ClerkBillingPlanPeriod = "annual";
 
 type SubscriptionItemLike = {
   status?: string;
