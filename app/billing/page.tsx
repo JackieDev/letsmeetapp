@@ -25,11 +25,15 @@ export default async function BillingPage() {
   const { userId } = await auth();
 
   if (userId) {
-    await ensureMemberForUser({
+    const member = await ensureMemberForUser({
       userId,
       email: null,
       profilePicture: null,
     });
+
+    if (member.isPaidSubscriber) {
+      redirect("/dashboard");
+    }
 
     const { isPaidSubscriber } = await getUserHasActivePaidSubscription(userId).catch(
       () => ({ isPaidSubscriber: false })

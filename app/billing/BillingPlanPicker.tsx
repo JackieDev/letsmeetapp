@@ -116,9 +116,9 @@ export function BillingPlanPicker() {
                   for="user"
                   planId={plan.id}
                   planPeriod={CLERK_BILLING_PLAN_PERIOD}
-                  newSubscriptionRedirectUrl="/dashboard"
                   onSubscriptionComplete={async () => {
-                    await syncMemberAfterPayment();
+                    await syncMemberAfterPayment({ planId: plan.id });
+                    window.location.assign("/dashboard");
                   }}
                 >
                   <button type="button" className={subscribeButtonClassName}>

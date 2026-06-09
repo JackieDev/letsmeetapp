@@ -24,6 +24,7 @@ export const CLERK_BILLING_PLAN_PERIOD: ClerkBillingPlanPeriod =
 type SubscriptionItemLike = {
   status?: string;
   planId?: string | null;
+  periodEnd?: number | string | Date | null;
   plan?: { id?: string | null; slug?: string | null } | null;
 };
 
@@ -37,6 +38,20 @@ export function matchesConfiguredPaidPlan(item: SubscriptionItemLike): boolean {
   if (CLERK_BILLING_PLAN_SLUG && planSlug === CLERK_BILLING_PLAN_SLUG) return true;
 
   return false;
+}
+
+/** Active paid item: configured plan first, then any non-free active subscription. */
+export function findActivePaidSubscriptionItem(
+  items: SubscriptionItemLike[] | undefined
+): SubscriptionItemLike | undefined {
+  if (!items?.length) return undefined;
+
+  const configured = items.find(matchesConfiguredPaidPlan);
+  if (configured) return configured;
+
+  return items.find(
+    (item) => item.status === "active" && item.plan?.slug !== "free_user"
+  );
 }
 
 export function isBillingPlanConfigured(): boolean {
