@@ -1,5 +1,4 @@
 import { ensureMemberForUser, getMemberByUserId, type Member } from "@/db/queries/members";
-import { getUserHasActivePaidSubscription } from "@/lib/clerk-billing";
 import { getClerkUserDetails } from "@/lib/clerk-user";
 import {
   getTrialEndsAt,
@@ -48,15 +47,10 @@ export async function getMemberAccessStatus(userId: string): Promise<MemberAcces
   const signedUpAt = await resolveSignedUpAt(member, userId);
   const trialEndsAt = getTrialEndsAt(signedUpAt);
   const isInFreeTrial = isWithinFreeTrial(signedUpAt);
+  const isPaidSubscriber = member.isPaidSubscriber;
 
-  let isPaidSubscriber = member.isPaidSubscriber;
-  if (!isPaidSubscriber) {
-    const billing = await getUserHasActivePaidSubscription(userId).catch(() => ({
-      isPaidSubscriber: false,
-    }));
-    isPaidSubscriber = billing.isPaidSubscriber;
-  }
-
+  // Access is based on persisted member state only. Clerk billing is synced on
+  // /billing and /dashboard before redirecting, so we avoid billing ↔ dashboard loops.
   const hasAccess = isInFreeTrial || isPaidSubscriber;
 
   return {

@@ -1,6 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { activateMemberSubscription } from "@/db/queries/billing";
-import { ensureMemberForUser } from "@/db/queries/members";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
 import { getClerkUserDetails } from "@/lib/clerk-user";
 
@@ -18,8 +17,6 @@ export async function syncMemberBillingForUser(
     const email = user?.primaryEmailAddress?.emailAddress ?? clerkDetails.email;
     const profilePicture = user?.imageUrl ?? clerkDetails.profilePicture;
     const signedUpAt = clerkDetails.signedUpAt ?? new Date();
-
-    await ensureMemberForUser({ userId, email, profilePicture, signedUpAt });
 
     const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 5);
     const { isPaidSubscriber, subscription, paidItem } = billingCheck;

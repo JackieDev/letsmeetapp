@@ -7,6 +7,20 @@ const tailwindcssRoot = path.join(projectRoot, "node_modules", "tailwindcss");
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  async redirects() {
+    return [
+      {
+        source: "/sign-up",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/sign-up/:path*",
+        destination: "/",
+        permanent: false,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
