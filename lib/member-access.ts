@@ -1,53 +1,48 @@
-import { clerkClient } from "@clerk/nextjs/server";
 import { ensureMemberForUser, getMemberByUserId, type Member } from "@/db/queries/members";
 import { getUserHasActivePaidSubscription } from "@/lib/clerk-billing";
+import { getClerkUserDetails } from "@/lib/clerk-user";
 import {
   getTrialEndsAt,
   isWithinFreeTrial,
 } from "@/lib/free-trial";
 
 export type MemberAccessStatus = {
-  member: Member;
+  member: Member | null;
   hasAccess: boolean;
+  hasCompletedBillingSetup: boolean;
   isPaidSubscriber: boolean;
   isInFreeTrial: boolean;
   signedUpAt: Date | null;
   trialEndsAt: Date | null;
 };
 
-async function getClerkSignUpDate(userId: string): Promise<Date | null> {
-  try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    return user.createdAt ? new Date(user.createdAt) : null;
-  } catch {
-    return null;
-  }
-}
-
 async function resolveSignedUpAt(member: Member, userId: string): Promise<Date> {
   if (member.signedUpAt) return new Date(member.signedUpAt);
 
-  const clerkSignedUpAt = await getClerkSignUpDate(userId);
+  const { signedUpAt: clerkSignedUpAt } = await getClerkUserDetails(userId);
   if (clerkSignedUpAt) {
     const updated = await ensureMemberForUser({ userId, signedUpAt: clerkSignedUpAt });
     return updated.signedUpAt ? new Date(updated.signedUpAt) : clerkSignedUpAt;
   }
 
-  // Last resort: start trial from first successful access check.
   const trialStart = new Date();
   const updated = await ensureMemberForUser({ userId, signedUpAt: trialStart });
   return updated.signedUpAt ? new Date(updated.signedUpAt) : trialStart;
 }
 
 export async function getMemberAccessStatus(userId: string): Promise<MemberAccessStatus> {
-  let member = await getMemberByUserId(userId);
+  const member = await getMemberByUserId(userId);
+
   if (!member) {
-    const clerkSignedUpAt = await getClerkSignUpDate(userId);
-    member = await ensureMemberForUser({
-      userId,
-      signedUpAt: clerkSignedUpAt,
-    });
+    return {
+      member: null,
+      hasAccess: false,
+      hasCompletedBillingSetup: false,
+      isPaidSubscriber: false,
+      isInFreeTrial: false,
+      signedUpAt: null,
+      trialEndsAt: null,
+    };
   }
 
   const signedUpAt = await resolveSignedUpAt(member, userId);
@@ -62,11 +57,12 @@ export async function getMemberAccessStatus(userId: string): Promise<MemberAcces
     isPaidSubscriber = billing.isPaidSubscriber;
   }
 
-  const hasAccess = isPaidSubscriber || isInFreeTrial;
+  const hasAccess = isInFreeTrial || isPaidSubscriber;
 
   return {
     member,
     hasAccess,
+    hasCompletedBillingSetup: true,
     isPaidSubscriber,
     isInFreeTrial,
     signedUpAt,

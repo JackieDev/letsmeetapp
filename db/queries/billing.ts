@@ -40,6 +40,7 @@ export async function activateMemberSubscription(params: {
   userId: string;
   email?: string | null;
   profilePicture?: string | null;
+  signedUpAt?: Date | null;
   billingPlanId: string;
   billingCustomerId?: string | null;
   billingSubscriptionId?: string | null;
@@ -50,6 +51,7 @@ export async function activateMemberSubscription(params: {
     userId,
     email,
     profilePicture,
+    signedUpAt,
     billingPlanId,
     billingCustomerId,
     billingSubscriptionId,
@@ -57,7 +59,7 @@ export async function activateMemberSubscription(params: {
     billingPeriodEnd,
   } = params;
 
-  await ensureMemberForUser({ userId, email, profilePicture });
+  await ensureMemberForUser({ userId, email, profilePicture, signedUpAt });
 
   await db
     .update(membersTable)

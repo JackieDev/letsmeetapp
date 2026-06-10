@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { activateMemberSubscription } from "@/db/queries/billing";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
+import { getClerkUserDetails } from "@/lib/clerk-user";
 import { formatTrialEndDate } from "@/lib/free-trial";
 import { getMemberAccessStatus } from "@/lib/member-access";
 import { BillingAuthGate } from "./BillingAuthGate";
@@ -9,15 +10,23 @@ import { BillingCheckout } from "./BillingCheckout";
 
 export const dynamic = "force-dynamic";
 
-function BillingPageContent({ trialEndsAt }: { trialEndsAt: Date | null }) {
+function BillingPageContent({
+  trialEndsAt,
+  isNewUser,
+}: {
+  trialEndsAt: Date | null;
+  isNewUser: boolean;
+}) {
   return (
     <div className="container mx-auto max-w-screen-md flex flex-col gap-6 px-4 py-10">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Billing</h1>
         <p className="text-muted-foreground mt-2">
-          {trialEndsAt
-            ? `Your free trial ended on ${formatTrialEndDate(trialEndsAt)}. Subscribe annually to continue using the app.`
-            : "Subscribe annually to continue using the app."}
+          {isNewUser
+            ? "Add your payment details to get started. Your first 6 months are free — you won't be charged until your trial ends."
+            : trialEndsAt
+              ? `Your free trial ended on ${formatTrialEndDate(trialEndsAt)}. Subscribe annually to continue using the app.`
+              : "Subscribe annually to continue using the app."}
         </p>
       </div>
       <BillingCheckout />
@@ -27,24 +36,21 @@ function BillingPageContent({ trialEndsAt }: { trialEndsAt: Date | null }) {
 
 export default async function BillingPage() {
   const { userId } = await auth.protect();
-  let trialEndsAt: Date | null = null;
 
   const access = await getMemberAccessStatus(userId);
-  const { member, isInFreeTrial, isPaidSubscriber } = access;
-  trialEndsAt = access.trialEndsAt;
 
-  if (isInFreeTrial) {
-    redirect("/dashboard");
-  }
-
-  if (isPaidSubscriber || member.isPaidSubscriber) {
+  if (access.hasAccess) {
     redirect("/dashboard");
   }
 
   const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 3);
   if (billingCheck.isPaidSubscriber && billingCheck.paidItem && billingCheck.subscription) {
+    const clerkDetails = await getClerkUserDetails(userId);
     await activateMemberSubscription({
       userId,
+      email: clerkDetails.email,
+      profilePicture: clerkDetails.profilePicture,
+      signedUpAt: clerkDetails.signedUpAt,
       billingPlanId:
         billingCheck.paidItem.planId ?? billingCheck.paidItem.plan?.id ?? "",
       billingSubscriptionId: billingCheck.subscription.id,
@@ -56,9 +62,11 @@ export default async function BillingPage() {
     redirect("/dashboard");
   }
 
+  const isNewUser = !access.hasCompletedBillingSetup;
+
   return (
     <BillingAuthGate>
-      <BillingPageContent trialEndsAt={trialEndsAt} />
+      <BillingPageContent trialEndsAt={access.trialEndsAt} isNewUser={isNewUser} />
     </BillingAuthGate>
   );
 }

@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { activateMemberSubscription } from "@/db/queries/billing";
 import { ensureMemberForUser } from "@/db/queries/members";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
+import { getClerkUserDetails } from "@/lib/clerk-user";
 
 export type SyncMemberBillingResult =
   | { ok: true; userId: string }
@@ -13,10 +14,12 @@ export async function syncMemberBillingForUser(
 ): Promise<SyncMemberBillingResult> {
   try {
     const user = await currentUser();
-    const email = user?.primaryEmailAddress?.emailAddress ?? null;
-    const profilePicture = user?.imageUrl ?? null;
+    const clerkDetails = await getClerkUserDetails(userId);
+    const email = user?.primaryEmailAddress?.emailAddress ?? clerkDetails.email;
+    const profilePicture = user?.imageUrl ?? clerkDetails.profilePicture;
+    const signedUpAt = clerkDetails.signedUpAt ?? new Date();
 
-    await ensureMemberForUser({ userId, email, profilePicture });
+    await ensureMemberForUser({ userId, email, profilePicture, signedUpAt });
 
     const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 5);
     const { isPaidSubscriber, subscription, paidItem } = billingCheck;
@@ -26,6 +29,7 @@ export async function syncMemberBillingForUser(
         userId,
         email,
         profilePicture,
+        signedUpAt,
         billingPlanId: paidItem.planId ?? paidItem.plan?.id ?? planId ?? "",
         billingSubscriptionId: subscription.id,
         billingStatus: subscription.status,
@@ -39,6 +43,7 @@ export async function syncMemberBillingForUser(
         userId,
         email,
         profilePicture,
+        signedUpAt,
         billingPlanId: planId,
         billingStatus: "active",
       });

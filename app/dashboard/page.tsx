@@ -39,7 +39,7 @@ export default async function DashboardPage({
   const access = await getMemberAccessStatus(userId);
   const { member, hasAccess, isInFreeTrial, trialEndsAt } = access;
 
-  if (!hasAccess) {
+  if (!hasAccess || !member) {
     redirect("/billing");
   }
 

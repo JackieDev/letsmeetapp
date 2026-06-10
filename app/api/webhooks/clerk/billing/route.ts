@@ -7,6 +7,7 @@ import {
   CLERK_BILLING_PLAN_SLUG,
   isBillingPlanConfigured,
 } from "@/lib/billing-config";
+import { getClerkUserDetails } from "@/lib/clerk-user";
 
 export const runtime = "nodejs";
 
@@ -153,7 +154,13 @@ export async function POST(request: Request) {
   }
 
   // Ensure we have a target row, then update subscription state.
-  await ensureMemberForUser({ userId: payerId, email: null, profilePicture: null });
+  const clerkDetails = await getClerkUserDetails(payerId);
+  await ensureMemberForUser({
+    userId: payerId,
+    email: clerkDetails.email,
+    profilePicture: clerkDetails.profilePicture,
+    signedUpAt: clerkDetails.signedUpAt,
+  });
 
   await updateMemberBillingStatus({
     userId: payerId,
