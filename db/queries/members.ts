@@ -8,10 +8,11 @@ export type Member = typeof membersTable.$inferSelect;
 export async function ensureMemberForUser(params: {
   userId: string;
   email?: string | null;
+  name?: string | null;
   profilePicture?: string | null;
   signedUpAt?: Date | null;
 }) {
-  const { userId, email, profilePicture, signedUpAt } = params;
+  const { userId, email, name, profilePicture, signedUpAt } = params;
 
   const existing = await db
     .select()
@@ -20,14 +21,29 @@ export async function ensureMemberForUser(params: {
 
   if (existing.length > 0) {
     const row = existing[0];
-    if (!row.signedUpAt && signedUpAt) {
+    const updates: {
+      signedUpAt?: Date;
+      name?: string;
+      email?: string;
+      profilePicture?: string;
+    } = {};
+
+    if (!row.signedUpAt && signedUpAt) updates.signedUpAt = signedUpAt;
+    if (!row.name && name) updates.name = name;
+    if ((!row.email || row.email.endsWith("@placeholder.local")) && email) {
+      updates.email = email;
+    }
+    if (!row.profilePicture && profilePicture) updates.profilePicture = profilePicture;
+
+    if (Object.keys(updates).length > 0) {
       const [updated] = await db
         .update(membersTable)
-        .set({ signedUpAt })
+        .set(updates)
         .where(eq(membersTable.userId, userId))
         .returning();
       return updated ?? row;
     }
+
     return row;
   }
 
@@ -36,6 +52,7 @@ export async function ensureMemberForUser(params: {
     .values({
       userId,
       email: email ?? `${userId}@placeholder.local`,
+      name: name ?? null,
       profilePicture: profilePicture ?? null,
       signedUpAt: signedUpAt ?? null,
     })

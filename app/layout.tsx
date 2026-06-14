@@ -32,9 +32,9 @@ export default function RootLayout({
       signInUrl="/"
       signUpUrl="/"
       signInForceRedirectUrl="/billing"
-      signUpForceRedirectUrl="/billing"
+      signUpForceRedirectUrl="/signed-up"
       signInFallbackRedirectUrl="/billing"
-      signUpFallbackRedirectUrl="/billing"
+      signUpFallbackRedirectUrl="/signed-up"
       appearance={{
         baseTheme: dark,
       }}

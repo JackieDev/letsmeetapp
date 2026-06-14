@@ -145,7 +145,7 @@ export function BillingPlanPicker() {
                       });
                       if (!fallback.ok) return;
                     }
-                    router.refresh();
+                    router.push("/dashboard");
                   }}
                 >
                   <button type="button" className={subscribeButtonClassName}>
