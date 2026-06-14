@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ensureMemberForUser } from "@/db/queries/members";
 import { getClerkUserDetails } from "@/lib/clerk-user";
 import { getMemberAccessStatus } from "@/lib/member-access";
+import { SignedUpAuthCallback } from "./SignedUpAuthCallback";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,11 @@ function getDisplayName(
 }
 
 export default async function SignedUpPage() {
-  const { userId } = await auth.protect();
+  const { userId } = await auth();
+
+  if (!userId) {
+    return <SignedUpAuthCallback />;
+  }
 
   const [user, clerkDetails] = await Promise.all([
     currentUser(),

@@ -27,11 +27,11 @@ frontend:
         - echo "CLERK_WEBHOOK_SIGNING_SECRET=$(echo $secrets | jq -r '.CLERK_WEBHOOK_SIGNING_SECRET')" >> .env.production
         - echo "NEXT_PUBLIC_APP_URL=https://letsmeet.uk" >> .env.production
         - echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=/" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/billing" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/billing" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signed-up" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/billing" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/signed-up" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/billing" >> .env.production
+        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/signed-up" >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next

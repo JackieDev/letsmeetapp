@@ -1,14 +1,26 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { HomeAuthButtons } from "@/components/HomeAuthButtons";
+import { parseInternalRedirectPath } from "@/lib/app-url";
 import { tryActivateMemberFromClerkSubscription } from "@/lib/activate-member-from-clerk";
 import { getMemberAccessStatus } from "@/lib/member-access";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect_url?: string }>;
+}) {
+  const params = await searchParams;
+  const redirectTarget = parseInternalRedirectPath(params.redirect_url);
+
   const { userId } = await auth();
   if (userId) {
+    if (redirectTarget) {
+      redirect(redirectTarget);
+    }
+
     let access = await getMemberAccessStatus(userId);
 
     if (!access.hasAccess) {
@@ -19,6 +31,10 @@ export default async function Home() {
     }
 
     redirect(access.hasAccess ? "/dashboard" : "/billing");
+  }
+
+  if (redirectTarget) {
+    redirect(redirectTarget);
   }
 
   return (

@@ -7,3 +7,20 @@ export function getPrimaryAppOrigin(): string {
   if (configured) return configured.replace(/\/$/, "");
   return DEFAULT_PRIMARY_ORIGIN;
 }
+
+/** Resolve a Clerk redirect_url to a same-origin path, or null if unsafe. */
+export function parseInternalRedirectPath(redirectUrl: string | undefined): string | null {
+  if (!redirectUrl) return null;
+
+  try {
+    const parsed = redirectUrl.startsWith("/")
+      ? new URL(redirectUrl, getPrimaryAppOrigin())
+      : new URL(redirectUrl);
+
+    if (parsed.origin !== getPrimaryAppOrigin()) return null;
+
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return null;
+  }
+}
