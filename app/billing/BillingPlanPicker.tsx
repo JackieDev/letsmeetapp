@@ -1,7 +1,8 @@
 "use client";
 
-import { SignedIn } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { CheckoutButton, usePlans } from "@clerk/nextjs/experimental";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { syncMemberAfterPayment } from "@/actions/billing";
 import {
@@ -109,27 +110,27 @@ export function BillingPlanPicker() {
   }
 
   return (
-    <SignedIn>
-      <ul className="flex flex-col gap-4">
-        {plans.map((plan) => {
-          const { amount: price, suffix: priceSuffix } = formatAnnualPrice(plan);
+    <ul className="flex flex-col gap-4">
+      {plans.map((plan) => {
+        const { amount: price, suffix: priceSuffix } = formatAnnualPrice(plan);
 
-          return (
-            <li
-              key={plan.id}
-              className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm"
-            >
-              <h3 className="text-lg font-medium">{plan.name}</h3>
-              {plan.description ? (
-                <p className="text-muted-foreground mt-1 text-base">{plan.description}</p>
-              ) : null}
-              <p className="mt-3 text-2xl font-semibold">
-                {price}
-                <span className="ml-1 text-sm font-normal text-muted-foreground">
-                  / {priceSuffix}
-                </span>
-              </p>
-              <div className="mt-6">
+        return (
+          <li
+            key={plan.id}
+            className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm"
+          >
+            <h3 className="text-lg font-medium">{plan.name}</h3>
+            {plan.description ? (
+              <p className="text-muted-foreground mt-1 text-base">{plan.description}</p>
+            ) : null}
+            <p className="mt-3 text-2xl font-semibold">
+              {price}
+              <span className="ml-1 text-sm font-normal text-muted-foreground">
+                / {priceSuffix}
+              </span>
+            </p>
+            <div className="mt-6">
+              <SignedIn>
                 <CheckoutButton
                   for="user"
                   planId={plan.id}
@@ -152,11 +153,16 @@ export function BillingPlanPicker() {
                     Subscribe to {plan.name}
                   </button>
                 </CheckoutButton>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </SignedIn>
+              </SignedIn>
+              <SignedOut>
+                <Link href="/" className={subscribeButtonClassName}>
+                  Sign in to subscribe
+                </Link>
+              </SignedOut>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

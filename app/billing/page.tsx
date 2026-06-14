@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { tryActivateMemberFromClerkSubscription } from "@/lib/activate-member-from-clerk";
 import { formatTrialEndDate } from "@/lib/free-trial";
 import { getMemberAccessStatus } from "@/lib/member-access";
-import { BillingAuthGate } from "./BillingAuthGate";
 import { BillingCheckout } from "./BillingCheckout";
 import { BillingSubscriptionInfo } from "./BillingSubscriptionInfo";
 import { BillingTrialStatus } from "./BillingTrialStatus";
@@ -10,6 +9,7 @@ import { BillingTrialStatus } from "./BillingTrialStatus";
 export const dynamic = "force-dynamic";
 
 type BillingPageContentProps = {
+  isSignedIn: boolean;
   isNewUser: boolean;
   isPaidSubscriber: boolean;
   isInFreeTrial: boolean;
@@ -19,6 +19,7 @@ type BillingPageContentProps = {
 };
 
 function BillingPageContent({
+  isSignedIn,
   isNewUser,
   isPaidSubscriber,
   isInFreeTrial,
@@ -29,7 +30,9 @@ function BillingPageContent({
   const showPlanPicker = !isPaidSubscriber;
 
   let description: string;
-  if (isPaidSubscriber) {
+  if (!isSignedIn) {
+    description = "View available subscription plans. Sign Up/Sign In to subscribe.";
+  } else if (isPaidSubscriber) {
     description = "View your subscription details and manage billing.";
   } else if (isNewUser) {
     description =
@@ -66,34 +69,45 @@ function BillingPageContent({
 }
 
 export default async function BillingPage() {
-  const { userId } = await auth.protect();
+  const { userId } = await auth();
+  const isSignedIn = Boolean(userId);
 
-  let access = await getMemberAccessStatus(userId);
+  let isNewUser = false;
+  let isPaidSubscriber = false;
+  let isInFreeTrial = false;
+  let trialEndsAt: string | null = null;
+  let billingStatus: string | null = null;
+  let billingPeriodEnd: string | null = null;
 
-  if (!access.hasAccess || access.isPaidSubscriber) {
-    const synced = await tryActivateMemberFromClerkSubscription(userId);
-    if (synced) {
-      access = await getMemberAccessStatus(userId);
+  if (userId) {
+    let access = await getMemberAccessStatus(userId);
+
+    if (!access.hasAccess || access.isPaidSubscriber) {
+      const synced = await tryActivateMemberFromClerkSubscription(userId);
+      if (synced) {
+        access = await getMemberAccessStatus(userId);
+      }
     }
+
+    isNewUser = !access.hasCompletedBillingSetup;
+    isPaidSubscriber = access.isPaidSubscriber;
+    isInFreeTrial = access.isInFreeTrial;
+    trialEndsAt = access.trialEndsAt?.toISOString() ?? null;
+    billingStatus = access.member?.billingStatus ?? null;
+    billingPeriodEnd = access.member?.billingPeriodEnd
+      ? new Date(access.member.billingPeriodEnd).toISOString()
+      : null;
   }
 
-  const isNewUser = !access.hasCompletedBillingSetup;
-  const member = access.member;
-
   return (
-    <BillingAuthGate>
-      <BillingPageContent
-        isNewUser={isNewUser}
-        isPaidSubscriber={access.isPaidSubscriber}
-        isInFreeTrial={access.isInFreeTrial}
-        trialEndsAt={access.trialEndsAt?.toISOString() ?? null}
-        billingStatus={member?.billingStatus ?? null}
-        billingPeriodEnd={
-          member?.billingPeriodEnd
-            ? new Date(member.billingPeriodEnd).toISOString()
-            : null
-        }
-      />
-    </BillingAuthGate>
+    <BillingPageContent
+      isSignedIn={isSignedIn}
+      isNewUser={isNewUser}
+      isPaidSubscriber={isPaidSubscriber}
+      isInFreeTrial={isInFreeTrial}
+      trialEndsAt={trialEndsAt}
+      billingStatus={billingStatus}
+      billingPeriodEnd={billingPeriodEnd}
+    />
   );
 }
