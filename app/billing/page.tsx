@@ -1,8 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { activateMemberSubscription } from "@/db/queries/billing";
-import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
-import { getClerkUserDetails } from "@/lib/clerk-user";
+import { tryActivateMemberFromClerkSubscription } from "@/lib/activate-member-from-clerk";
 import { formatTrialEndDate } from "@/lib/free-trial";
 import { getMemberAccessStatus } from "@/lib/member-access";
 import { BillingAuthGate } from "./BillingAuthGate";
@@ -37,28 +35,16 @@ function BillingPageContent({
 export default async function BillingPage() {
   const { userId } = await auth.protect();
 
-  const access = await getMemberAccessStatus(userId);
+  let access = await getMemberAccessStatus(userId);
 
-  if (access.hasAccess) {
-    redirect("/dashboard");
+  if (!access.hasAccess) {
+    const synced = await tryActivateMemberFromClerkSubscription(userId);
+    if (synced) {
+      access = await getMemberAccessStatus(userId);
+    }
   }
 
-  const billingCheck = await getUserHasActivePaidSubscriptionWithRetry(userId, 3);
-  if (billingCheck.isPaidSubscriber && billingCheck.paidItem && billingCheck.subscription) {
-    const clerkDetails = await getClerkUserDetails(userId);
-    await activateMemberSubscription({
-      userId,
-      email: clerkDetails.email,
-      profilePicture: clerkDetails.profilePicture,
-      signedUpAt: clerkDetails.signedUpAt,
-      billingPlanId:
-        billingCheck.paidItem.planId ?? billingCheck.paidItem.plan?.id ?? "",
-      billingSubscriptionId: billingCheck.subscription.id,
-      billingStatus: billingCheck.subscription.status,
-      billingPeriodEnd: billingCheck.paidItem.periodEnd
-        ? new Date(billingCheck.paidItem.periodEnd)
-        : null,
-    });
+  if (access.hasAccess) {
     redirect("/dashboard");
   }
 

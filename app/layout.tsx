@@ -29,10 +29,11 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider
+      signInUrl="/"
       signUpUrl="/"
-      signInForceRedirectUrl="/dashboard"
+      signInForceRedirectUrl="/"
       signUpForceRedirectUrl="/billing"
-      signInFallbackRedirectUrl="/dashboard"
+      signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/billing"
       appearance={{
         baseTheme: dark,

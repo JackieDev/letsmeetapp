@@ -13,8 +13,9 @@ import { MessagesTab } from "./MessagesTab";
 import { PendingGroupsAdminTab } from "./PendingGroupsAdminTab";
 import { NotificationsTab } from "./NotificationsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getMemberByUserId } from "@/db/queries/members";
 import { activateMemberSubscription } from "@/db/queries/billing";
+import { getMemberByUserId } from "@/db/queries/members";
+import { tryActivateMemberFromClerkSubscription } from "@/lib/activate-member-from-clerk";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
 import { formatTrialEndDate } from "@/lib/free-trial";
 import { getMemberAccessStatus } from "@/lib/member-access";
@@ -36,8 +37,19 @@ export default async function DashboardPage({
     ? requestedTab
     : "profile";
 
-  const access = await getMemberAccessStatus(userId);
-  const { member, hasAccess, isInFreeTrial, trialEndsAt } = access;
+  let access = await getMemberAccessStatus(userId);
+  let { member, hasAccess, isInFreeTrial, trialEndsAt } = access;
+
+  if (!hasAccess || !member) {
+    const synced = await tryActivateMemberFromClerkSubscription(userId);
+    if (synced) {
+      access = await getMemberAccessStatus(userId);
+      member = access.member;
+      hasAccess = access.hasAccess;
+      isInFreeTrial = access.isInFreeTrial;
+      trialEndsAt = access.trialEndsAt;
+    }
+  }
 
   if (!hasAccess || !member) {
     redirect("/billing");

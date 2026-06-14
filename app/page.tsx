@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { HomeAuthButtons } from "@/components/HomeAuthButtons";
+import { tryActivateMemberFromClerkSubscription } from "@/lib/activate-member-from-clerk";
 import { getMemberAccessStatus } from "@/lib/member-access";
 
 export const dynamic = "force-dynamic";
@@ -8,8 +9,16 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const { userId } = await auth();
   if (userId) {
-    const { hasAccess } = await getMemberAccessStatus(userId);
-    redirect(hasAccess ? "/dashboard" : "/billing");
+    let access = await getMemberAccessStatus(userId);
+
+    if (!access.hasAccess) {
+      const synced = await tryActivateMemberFromClerkSubscription(userId);
+      if (synced) {
+        access = await getMemberAccessStatus(userId);
+      }
+    }
+
+    redirect(access.hasAccess ? "/dashboard" : "/billing");
   }
 
   return (

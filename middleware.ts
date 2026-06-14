@@ -3,12 +3,17 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ACCOUNTS_HOST, getPrimaryAppOrigin } from "@/lib/app-url";
 
-function isSignUpPath(pathname: string): boolean {
-  return pathname === "/sign-up" || pathname.startsWith("/sign-up/");
+function isAuthEntryPath(pathname: string): boolean {
+  return (
+    pathname === "/sign-up" ||
+    pathname.startsWith("/sign-up/") ||
+    pathname === "/sign-in" ||
+    pathname.startsWith("/sign-in/")
+  );
 }
 
-function redirectSignUpToHome(request: NextRequest): NextResponse | null {
-  if (!isSignUpPath(request.nextUrl.pathname)) return null;
+function redirectAuthEntryToHome(request: NextRequest): NextResponse | null {
+  if (!isAuthEntryPath(request.nextUrl.pathname)) return null;
 
   const host = request.headers.get("host")?.split(":")[0] ?? "";
   if (host === ACCOUNTS_HOST) {
@@ -19,7 +24,7 @@ function redirectSignUpToHome(request: NextRequest): NextResponse | null {
 }
 
 export default clerkMiddleware((_auth, request) => {
-  const redirect = redirectSignUpToHome(request);
+  const redirect = redirectAuthEntryToHome(request);
   if (redirect) return redirect;
 });
 
