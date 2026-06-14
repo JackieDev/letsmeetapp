@@ -53,7 +53,7 @@ export function BillingSubscriptionSync() {
           syncedRef.current = false;
           return;
         }
-        router.replace("/dashboard");
+        router.refresh();
       })
       .catch(() => {
         syncedRef.current = false;

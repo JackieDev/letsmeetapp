@@ -5,12 +5,16 @@ import { BillingDashboardLink } from "./BillingDashboardLink";
 import { BillingPlanPicker } from "./BillingPlanPicker";
 import { BillingSubscriptionSync } from "./BillingSubscriptionSync";
 
-export function BillingCheckout() {
+type Props = {
+  showPlanPicker: boolean;
+};
+
+export function BillingCheckout({ showPlanPicker }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <ClerkLoaded>
         <BillingSubscriptionSync />
-        <BillingPlanPicker />
+        {showPlanPicker ? <BillingPlanPicker /> : null}
       </ClerkLoaded>
 
       <div className="text-sm text-muted-foreground">

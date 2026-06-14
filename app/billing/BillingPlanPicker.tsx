@@ -2,6 +2,7 @@
 
 import { SignedIn } from "@clerk/nextjs";
 import { CheckoutButton, usePlans } from "@clerk/nextjs/experimental";
+import { useRouter } from "next/navigation";
 import { syncMemberAfterPayment } from "@/actions/billing";
 import {
   CLERK_BILLING_PLAN_ID,
@@ -80,6 +81,7 @@ function matchesConfiguredPlan(plan: BillingPlan): boolean {
 }
 
 export function BillingPlanPicker() {
+  const router = useRouter();
   const { data, isLoading, isError } = usePlans({ for: "user" });
 
   const plans = getPlansFromQuery(data).filter(
@@ -143,7 +145,7 @@ export function BillingPlanPicker() {
                       });
                       if (!fallback.ok) return;
                     }
-                    window.location.assign("/dashboard");
+                    router.refresh();
                   }}
                 >
                   <button type="button" className={subscribeButtonClassName}>
