@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +9,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function LetsMeetMenu() {
+  const { isSignedIn } = useAuth();
+
   const navigateWithHttpRequest = (url: string) => {
     window.location.assign(url);
   };
@@ -33,14 +36,16 @@ export function LetsMeetMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuItem
+          disabled={!isSignedIn}
           onSelect={() => navigateWithHttpRequest("/dashboard?tab=profile")}
-          className="cursor-pointer"
+          className={isSignedIn ? "cursor-pointer" : undefined}
         >
           Dashboard
         </DropdownMenuItem>
         <DropdownMenuItem
+          disabled={!isSignedIn}
           onSelect={() => navigateWithHttpRequest("/calendar")}
-          className="cursor-pointer"
+          className={isSignedIn ? "cursor-pointer" : undefined}
         >
           Calendar
         </DropdownMenuItem>

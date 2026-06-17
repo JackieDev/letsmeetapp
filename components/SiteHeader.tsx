@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SignOutButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignOutButton, SignedIn } from "@clerk/nextjs";
 import { ReportIssueButton } from "@/components/ReportIssueButton";
 import { buttonVariants } from "@/components/ui/button";
 import { LetsMeetMenu } from "@/app/LetsMeetMenu";
@@ -15,14 +14,7 @@ export function SiteHeader() {
     <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 w-full items-center">
         <div className="flex flex-1 items-center pl-4">
-          <SignedIn>
-            <LetsMeetMenu />
-          </SignedIn>
-          <SignedOut>
-            <Link href="/" className="font-semibold transition-opacity hover:opacity-80">
-              LetsMeet
-            </Link>
-          </SignedOut>
+          <LetsMeetMenu />
         </div>
         <nav className="ml-auto flex items-center gap-4 pr-4">
           <ReportIssueButton />

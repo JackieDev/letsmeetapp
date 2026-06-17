@@ -1,6 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { CreateGroupForm } from "./new/CreateGroupForm";
 import { getGroupsUserIsMemberOf, searchGroups } from "@/db/queries/groups";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,9 +11,6 @@ export default async function GroupsPage({
   searchParams: Promise<{ name?: string; city?: string }>;
 }) {
   const { userId } = await auth();
-  if (!userId) {
-    redirect("/");
-  }
 
   const params = await searchParams;
   const name = typeof params.name === "string" ? params.name : undefined;
@@ -22,7 +18,7 @@ export default async function GroupsPage({
 
   const [groups, userMemberGroups] = await Promise.all([
     searchGroups({ name, city }),
-    getGroupsUserIsMemberOf(userId),
+    userId ? getGroupsUserIsMemberOf(userId) : Promise.resolve([]),
   ]);
 
   const userMemberGroupIds = new Set(userMemberGroups.map((group) => group.id));
@@ -41,7 +37,9 @@ export default async function GroupsPage({
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">Groups</h1>
           <p className="text-muted-foreground text-sm">
-            Search for groups, create a new one, and view groups you are already in.
+            {userId
+              ? "Search for groups, create a new one, and view groups you are already in."
+              : "Search for groups to join. Sign in to create a group or view your memberships."}
           </p>
         </div>
 
@@ -90,10 +88,10 @@ export default async function GroupsPage({
               Search
             </button>
             <Link
-              href="/dashboard"
+              href={userId ? "/dashboard" : "/"}
               className={cn(buttonVariants({ variant: "outline", size: "default" }))}
             >
-              Back to dashboard
+              {userId ? "Back to dashboard" : "Back to home"}
             </Link>
           </div>
         </form>
@@ -136,21 +134,23 @@ export default async function GroupsPage({
                         {group.city}
                         {group.description ? ` · ${group.description}` : ""}
                       </p>
-                      <div className="mt-1">
-                        {group.ownerId === userId ? (
-                          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                            Owner
-                          </span>
-                        ) : userMemberGroupIds.has(group.id) ? (
-                          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                            Member
-                          </span>
-                        ) : (
-                          <span className="rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                            Not a member
-                          </span>
-                        )}
-                      </div>
+                      {userId ? (
+                        <div className="mt-1">
+                          {group.ownerId === userId ? (
+                            <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                              Owner
+                            </span>
+                          ) : userMemberGroupIds.has(group.id) ? (
+                            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                              Member
+                            </span>
+                          ) : (
+                            <span className="rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              Not a member
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
                     </div>
                     <Link
                       href={`/group/${group.id}`}
@@ -165,72 +165,76 @@ export default async function GroupsPage({
           </div>
         ) : null}
 
-        <details className="group rounded-lg border border-border/40 bg-card p-4 text-card-foreground shadow-sm">
-          <summary
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "w-full cursor-pointer justify-center list-none [&::-webkit-details-marker]:hidden",
-            )}
-          >
-            Create new group
-          </summary>
-          <p className="text-muted-foreground mt-4 text-sm">
-            New groups require approval which takes up to 3 days. These will be notified by email.
-          </p>
-          <div className="mt-4">
-            <CreateGroupForm />
-          </div>
-        </details>
+        {userId ? (
+          <>
+            <details className="group rounded-lg border border-border/40 bg-card p-4 text-card-foreground shadow-sm">
+              <summary
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "w-full cursor-pointer justify-center list-none [&::-webkit-details-marker]:hidden",
+                )}
+              >
+                Create new group
+              </summary>
+              <p className="text-muted-foreground mt-4 text-sm">
+                New groups require approval which takes up to 3 days. These will be notified by email.
+              </p>
+              <div className="mt-4">
+                <CreateGroupForm />
+              </div>
+            </details>
 
-        <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
-          <h2 className="text-lg font-medium">Groups you&apos;re in</h2>
-          {sortedMemberGroups.length === 0 ? (
-            <p className="text-muted-foreground mt-2 text-sm">
-              You are not a member of any groups yet.
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {sortedMemberGroups.map((group) => (
-                <li
-                  key={group.id}
-                  className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3"
-                >
-                  {group.profilePicture ? (
-                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                      <img
-                        src={group.profilePicture}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-xl">
-                      —
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/group/${group.id}`}
-                      className="font-medium text-primary hover:underline"
+            <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+              <h2 className="text-lg font-medium">Groups you&apos;re in</h2>
+              {sortedMemberGroups.length === 0 ? (
+                <p className="text-muted-foreground mt-2 text-sm">
+                  You are not a member of any groups yet.
+                </p>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {sortedMemberGroups.map((group) => (
+                    <li
+                      key={group.id}
+                      className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3"
                     >
-                      {group.name}
-                    </Link>
-                    <p className="text-muted-foreground text-sm">
-                      {group.city}
-                      {group.ownerId === userId ? " · You own this group" : ""}
-                    </p>
-                  </div>
-                  <Link
-                    href={`/group/${group.id}`}
-                    className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
-                  >
-                    View
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                      {group.profilePicture ? (
+                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                          <img
+                            src={group.profilePicture}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-xl">
+                          —
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          href={`/group/${group.id}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {group.name}
+                        </Link>
+                        <p className="text-muted-foreground text-sm">
+                          {group.city}
+                          {group.ownerId === userId ? " · You own this group" : ""}
+                        </p>
+                      </div>
+                      <Link
+                        href={`/group/${group.id}`}
+                        className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+                      >
+                        View
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );
