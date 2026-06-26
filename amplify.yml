@@ -20,6 +20,7 @@ frontend:
         - echo "CLERK_SECRET_KEY=$(echo $secrets | jq -r '.CLERK_SECRET_KEY')" >> .env.production
         - echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$(echo $secrets | jq -r '.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY')" >> .env.production
         - echo "DATABASE_URL=$(echo $secrets | jq -r '.DATABASE_URL')" >> .env.production
+        - echo "Build DATABASE host=$(echo $secrets | jq -r '.DATABASE_URL' | sed -E 's|.*@([^/?]+).*|\1|')"
         - echo "RESEND_API_KEY=$(echo $secrets | jq -r '.RESEND_API_KEY')" >> .env.production   
         - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_ID=$(echo $secrets | jq -r '.NEXT_PUBLIC_CLERK_BILLING_PLAN_ID')" >> .env.production
         - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG=$(echo $secrets | jq -r '.NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG')" >> .env.production

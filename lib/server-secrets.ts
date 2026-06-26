@@ -18,6 +18,13 @@ const SECRET_ENV_KEYS = [
   "CLERK_WEBHOOK_SIGNING_SECRET",
 ] as const;
 
+let databaseUrlSource: "build" | "aws-secrets-manager" = "build";
+
+/** Where the active `DATABASE_URL` came from for the current server process. */
+export function getDatabaseUrlSource(): "build" | "aws-secrets-manager" {
+  return databaseUrlSource;
+}
+
 /**
  * In production, when `AWS_SECRETS_ID` is set, fetches the secret string (JSON object)
  * and copies supported keys into `process.env` so existing code keeps using `process.env.*`.
@@ -69,6 +76,9 @@ export async function loadAwsSecretsIntoEnv(): Promise<void> {
     const value = record[key];
     if (typeof value === "string" && value.length > 0) {
       process.env[key] = value;
+      if (key === "DATABASE_URL") {
+        databaseUrlSource = "aws-secrets-manager";
+      }
     }
   }
 }
