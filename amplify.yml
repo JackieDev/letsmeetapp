@@ -12,8 +12,6 @@ frontend:
     preBuild:
       commands:
         - echo "Now running the preBuild phase for the frontend"
-        # One-time cache bust — remove after the next successful deploy
-        - rm -rf .next/cache .npm
         - npm ci --cache .npm --prefer-offline
     build:
       commands:
