@@ -26,6 +26,7 @@ frontend:
         - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG=$(echo $secrets | jq -r '.NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG')" >> .env.production
         - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_PERIOD=annual" >> .env.production
         - echo "CLERK_WEBHOOK_SIGNING_SECRET=$(echo $secrets | jq -r '.CLERK_WEBHOOK_SIGNING_SECRET')" >> .env.production
+        - echo "AWS_REGION=eu-west-2" >> .env.production
         - echo "NEXT_PUBLIC_APP_URL=https://letsmeet.uk" >> .env.production
         - echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=/" >> .env.production
         - echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signed-up" >> .env.production

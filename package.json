@@ -18,7 +18,7 @@
     "@clerk/nextjs": "^6.37.4",
     "@clerk/themes": "^2.4.52",
     "@neondatabase/serverless": "^1.0.2",
-    "aws-amplify": "^6.18.0",
+    "aws-amplify": "^6.16.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
