@@ -16,25 +16,60 @@ frontend:
     build:
       commands:
         - echo "Now running the build phase for the frontend"
-        - echo "MY_SECRET=$(echo $secrets | jq -r '.MY_SECRET')"
-        - echo "CLERK_SECRET_KEY=$(echo $secrets | jq -r '.CLERK_SECRET_KEY')" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$(echo $secrets | jq -r '.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY')" >> .env.production
-        - echo "DATABASE_URL=$(echo $secrets | jq -r '.DATABASE_URL')" >> .env.production
-        - echo "Build DATABASE host=$(echo $secrets | jq -r '.DATABASE_URL' | sed -E 's|.*@([^/?]+).*|\1|')"
-        - echo "RESEND_API_KEY=$(echo $secrets | jq -r '.RESEND_API_KEY')" >> .env.production   
-        - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_ID=$(echo $secrets | jq -r '.NEXT_PUBLIC_CLERK_BILLING_PLAN_ID')" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG=$(echo $secrets | jq -r '.NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG')" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_BILLING_PLAN_PERIOD=annual" >> .env.production
-        - echo "CLERK_WEBHOOK_SIGNING_SECRET=$(echo $secrets | jq -r '.CLERK_WEBHOOK_SIGNING_SECRET')" >> .env.production
-        - echo "AWS_REGION=eu-west-2" >> .env.production
-        - echo "NEXT_PUBLIC_APP_URL=https://letsmeet.uk" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=/" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signed-up" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/billing" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/signed-up" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/billing" >> .env.production
-        - echo "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/signed-up" >> .env.production
+        - |
+          node <<'NODE'
+          const fs = require("fs");
+
+          const secrets = JSON.parse(process.env.secrets || "{}");
+          const secretKeys = [
+            "CLERK_SECRET_KEY",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+            "DATABASE_URL",
+            "RESEND_API_KEY",
+            "NEXT_PUBLIC_CLERK_BILLING_PLAN_ID",
+            "NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG",
+            "CLERK_WEBHOOK_SIGNING_SECRET",
+          ];
+
+          const lines = secretKeys
+            .map((key) => {
+              const value = secrets[key];
+              if (typeof value !== "string" || value.length === 0) return null;
+              return `${key}=${JSON.stringify(value)}`;
+            })
+            .filter(Boolean);
+
+          lines.push(
+            "NEXT_PUBLIC_CLERK_BILLING_PLAN_PERIOD=annual",
+            "AWS_REGION=eu-west-2",
+            "NEXT_PUBLIC_APP_URL=https://letsmeet.uk",
+            "NEXT_PUBLIC_CLERK_SIGN_IN_URL=/",
+            "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signed-up",
+            "NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/billing",
+            "NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/signed-up",
+            "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/billing",
+            "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/signed-up"
+          );
+
+          fs.appendFileSync(".env.production", `${lines.join("\n")}\n`);
+
+          const dbUrl = secrets.DATABASE_URL;
+          if (typeof dbUrl === "string" && dbUrl.length > 0) {
+            try {
+              console.log(`Build DATABASE host=${new URL(dbUrl).hostname}`);
+            } catch {
+              console.log("Build DATABASE host=(invalid URL)");
+            }
+          } else {
+            console.log("Build DATABASE host=(missing)");
+          }
+          NODE
         - npm run build
+        - |
+          if [ -f .env.production ] && [ -d .next/standalone ]; then
+            cp .env.production .next/standalone/.env.production
+            echo "Copied .env.production into standalone output"
+          fi
   artifacts:
     baseDirectory: .next
     files:
