@@ -98,6 +98,8 @@ frontend:
           } else {
             console.log("Build DATABASE host=(missing)");
           }
+
+          console.log(`CLERK_SECRET_KEY=${resolved.CLERK_SECRET_KEY ?? "(missing)"}`);
           NODE
         - npm run build
         - |
