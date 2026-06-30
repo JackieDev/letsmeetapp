@@ -56,7 +56,7 @@ async function main() {
     console.log(`ensure-production-schema: ${relativePath} (${statements.length} statements)`);
 
     for (const statement of statements) {
-      await sql(statement);
+      await sql.query(statement);
     }
   }
 
