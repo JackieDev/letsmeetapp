@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { membersTable } from "@/db/schema";
-import { ensureMemberForUser } from "@/db/queries/members";
+import { provisionMemberFromClerk } from "@/lib/provision-member";
 
 export async function updateMemberBillingStatus(params: {
   userId: string;
@@ -35,12 +35,39 @@ export async function updateMemberBillingStatus(params: {
     .where(eq(membersTable.userId, userId));
 }
 
+/** Record billing setup on an existing member without marking them as paid. */
+export async function recordMemberBillingSetup(params: {
+  userId: string;
+  billingPlanId?: string | null;
+  billingSubscriptionId?: string | null;
+  billingStatus?: string | null;
+  billingPeriodEnd?: Date | null;
+  billingCustomerId?: string | null;
+}) {
+  const {
+    userId,
+    billingPlanId,
+    billingSubscriptionId,
+    billingStatus,
+    billingPeriodEnd,
+    billingCustomerId,
+  } = params;
+
+  await db
+    .update(membersTable)
+    .set({
+      billingPlanId: billingPlanId ?? null,
+      billingSubscriptionId: billingSubscriptionId ?? null,
+      billingStatus: billingStatus ?? null,
+      billingPeriodEnd: billingPeriodEnd ?? null,
+      billingCustomerId: billingCustomerId ?? null,
+    })
+    .where(eq(membersTable.userId, userId));
+}
+
 /** Ensures a members row exists, then marks the user as a paid subscriber. */
 export async function activateMemberSubscription(params: {
   userId: string;
-  email?: string | null;
-  profilePicture?: string | null;
-  signedUpAt?: Date | null;
   billingPlanId: string;
   billingCustomerId?: string | null;
   billingSubscriptionId?: string | null;
@@ -49,9 +76,6 @@ export async function activateMemberSubscription(params: {
 }) {
   const {
     userId,
-    email,
-    profilePicture,
-    signedUpAt,
     billingPlanId,
     billingCustomerId,
     billingSubscriptionId,
@@ -59,7 +83,7 @@ export async function activateMemberSubscription(params: {
     billingPeriodEnd,
   } = params;
 
-  await ensureMemberForUser({ userId, email, profilePicture, signedUpAt });
+  await provisionMemberFromClerk(userId);
 
   await db
     .update(membersTable)

@@ -1,13 +1,12 @@
 import { verifyWebhook } from "@clerk/backend/webhooks";
 import { NextResponse } from "next/server";
-import { ensureMemberForUser } from "@/db/queries/members";
 import { updateMemberBillingStatus } from "@/db/queries/billing";
 import {
   CLERK_BILLING_PLAN_ID,
   CLERK_BILLING_PLAN_SLUG,
   isBillingPlanConfigured,
 } from "@/lib/billing-config";
-import { getClerkUserDetails } from "@/lib/clerk-user";
+import { provisionMemberFromClerk } from "@/lib/provision-member";
 
 export const runtime = "nodejs";
 
@@ -154,13 +153,7 @@ export async function POST(request: Request) {
   }
 
   // Ensure we have a target row, then update subscription state.
-  const clerkDetails = await getClerkUserDetails(payerId);
-  await ensureMemberForUser({
-    userId: payerId,
-    email: clerkDetails.email,
-    profilePicture: clerkDetails.profilePicture,
-    signedUpAt: clerkDetails.signedUpAt,
-  });
+  await provisionMemberFromClerk(payerId);
 
   await updateMemberBillingStatus({
     userId: payerId,

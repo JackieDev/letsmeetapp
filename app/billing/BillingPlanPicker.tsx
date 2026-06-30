@@ -4,7 +4,7 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { CheckoutButton, usePlans } from "@clerk/nextjs/experimental";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { syncMemberAfterPayment } from "@/actions/billing";
+import { syncMemberAfterPayment, provisionMemberAfterBillingSetup } from "@/actions/billing";
 import {
   CLERK_BILLING_PLAN_ID,
   CLERK_BILLING_PLAN_PERIOD,
@@ -136,6 +136,7 @@ export function BillingPlanPicker() {
                   planId={plan.id}
                   planPeriod={CLERK_BILLING_PLAN_PERIOD}
                   onSubscriptionComplete={async () => {
+                    await provisionMemberAfterBillingSetup();
                     const result = await syncMemberAfterPayment({ planId: plan.id });
                     if (!result.ok) {
                       const fallback = await fetch("/api/billing/sync", {
