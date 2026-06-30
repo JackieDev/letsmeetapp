@@ -1,1 +1,1 @@
-ALTER TABLE "members" ADD COLUMN "signedUpAt" timestamp;
+ALTER TABLE "members" ADD COLUMN IF NOT EXISTS "signedUpAt" timestamp;

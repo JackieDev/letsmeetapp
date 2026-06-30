@@ -17,6 +17,7 @@ frontend:
       commands:
         - echo "Now running the build phase for the frontend"
         - node scripts/write-production-env.js
+        - node scripts/ensure-production-schema.js
         - npm run build
         - |
           if [ -f .env.production ] && [ -d .next/standalone ]; then
