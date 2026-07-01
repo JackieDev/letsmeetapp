@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const APPROVAL_RECIPIENT = "jacqueline@letsmeet.uk";
+export const GROUP_APPROVAL_RECIPIENT = "djhubbajaxx@hotmail.com";
 
 let resendSingleton: Resend | undefined;
 
@@ -39,7 +39,7 @@ export async function sendNewGroupApprovalEmail(group: NewGroupDetails): Promise
   try {
     const { error } = await resend.emails.send({
       from: getFromEmail(),
-      to: [APPROVAL_RECIPIENT],
+      to: [GROUP_APPROVAL_RECIPIENT],
       subject: `[LetsMeet] New group for approval: ${group.name}`,
       html: `
         <h2>New group submitted for approval</h2>
@@ -83,7 +83,7 @@ export async function sendReportIssueEmail(report: ReportIssueDetails): Promise<
   try {
     const { error } = await resend.emails.send({
       from: getFromEmail(),
-      to: [APPROVAL_RECIPIENT],
+      to: [GROUP_APPROVAL_RECIPIENT],
       subject: `[LetsMeet] Report an issue from ${escapeHtml(report.email)}`,
       html: `
         <h2>Report an issue</h2>
