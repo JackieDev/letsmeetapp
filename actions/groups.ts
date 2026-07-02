@@ -4,7 +4,6 @@ import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
-  GROUP_APPROVAL_RECIPIENT,
   sendGroupMemberJoinRequestEmail,
   sendNewGroupApprovalEmail,
   sendGroupApprovedOwnerEmail,
@@ -119,7 +118,7 @@ export async function approveGroup(input: ApproveGroupInput): Promise<ApproveGro
 
   const user = await currentUser();
   const approverEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
-  const isEmailApprover = approverEmail === GROUP_APPROVAL_RECIPIENT;
+  const isEmailApprover = approverEmail === "jacqueline@letsmeet.uk";
 
   if (!isEmailApprover) {
     return { success: false, error: "You are not authorized to approve groups." };
@@ -187,7 +186,7 @@ export async function deletePendingGroup(
 
   const user = await currentUser();
   const approverEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
-  const isEmailApprover = approverEmail === GROUP_APPROVAL_RECIPIENT;
+  const isEmailApprover = approverEmail === "jacqueline@letsmeet.uk";
   if (!isEmailApprover) {
     return { success: false, error: "You are not authorized to manage groups." };
   }

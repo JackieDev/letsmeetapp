@@ -18,7 +18,6 @@ import { getMemberByUserId } from "@/db/queries/members";
 import { tryActivateMemberFromClerkSubscription } from "@/lib/activate-member-from-clerk";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
 import { formatTrialEndDate } from "@/lib/free-trial";
-import { GROUP_APPROVAL_RECIPIENT } from "@/lib/email";
 import { getMemberAccessStatus } from "@/lib/member-access";
 
 export const dynamic = "force-dynamic";
@@ -133,7 +132,7 @@ export default async function DashboardPage({
     member.email ||
     "there";
   const primaryEmail = member.email?.toLowerCase() ?? "";
-  const isGroupApprover = primaryEmail === GROUP_APPROVAL_RECIPIENT;
+  const isGroupApprover = primaryEmail === "jacqueline@letsmeet.uk";
   const pendingGroups =
     isGroupApprover && defaultTab === "admin-approvals"
       ? await getPendingGroupsForApproval()
