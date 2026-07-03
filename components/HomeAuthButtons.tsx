@@ -25,16 +25,16 @@ const signInRedirectProps = {
 export function HomeAuthButtons() {
   return (
     <div className="relative z-10 flex shrink-0 flex-col gap-[0.504rem] sm:flex-row">
-      <SignInButton mode="modal" {...signInRedirectProps}>
-        <button type="button" className={buttonClassName}>
-          Sign In
-        </button>
-      </SignInButton>
       <SignUpButton mode="modal" {...signUpRedirectProps}>
         <button type="button" className={buttonClassName}>
           Sign Up
         </button>
       </SignUpButton>
+      <SignInButton mode="modal" {...signInRedirectProps}>
+        <button type="button" className={buttonClassName}>
+          Sign In
+        </button>
+      </SignInButton>
     </div>
   );
 }
