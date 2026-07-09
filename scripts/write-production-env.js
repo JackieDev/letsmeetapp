@@ -6,6 +6,7 @@ const secretKeys = [
   "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
   "DATABASE_URL",
   "RESEND_API_KEY",
+  "RESEND_FROM_EMAIL",
   "NEXT_PUBLIC_CLERK_BILLING_PLAN_ID",
   "NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG",
   "CLERK_WEBHOOK_SIGNING_SECRET",
@@ -142,6 +143,12 @@ if (missingRequired.length > 0) {
       "  3. Grant Amplify service role ssm:GetParameter* on arn:...:parameter/amplify/*"
   );
   process.exit(1);
+}
+
+if (!resolved.RESEND_API_KEY) {
+  console.warn(
+    "Warning: RESEND_API_KEY is not configured. Report-an-issue and group approval emails will not be sent."
+  );
 }
 
 const lines = Object.entries(resolved).map(

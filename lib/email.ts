@@ -1,8 +1,13 @@
 import { Resend } from "resend";
+import { APPROVAL_RECIPIENT, getFromEmail } from "@/lib/email-diagnostic";
 
-const APPROVAL_RECIPIENT = "jacqueline@letsmeet.uk";
+export { APPROVAL_RECIPIENT, getFromEmail } from "@/lib/email-diagnostic";
 
 let resendSingleton: Resend | undefined;
+
+export type EmailSendResult =
+  | { ok: true; id?: string }
+  | { ok: false; error: string };
 
 function getResend(): Resend | undefined {
   const key = process.env.RESEND_API_KEY;
@@ -11,8 +16,48 @@ function getResend(): Resend | undefined {
   return resendSingleton;
 }
 
-function getFromEmail(): string {
-  return process.env.RESEND_FROM_EMAIL ?? "jacqueline@letsmeet.uk";
+async function sendEmail(params: {
+  to: string[];
+  subject: string;
+  html: string;
+  context: string;
+}): Promise<EmailSendResult> {
+  if (!process.env.RESEND_API_KEY) {
+    const error = "RESEND_API_KEY not set";
+    console.warn(`[email] ${error}; skipping ${params.context}.`);
+    return { ok: false, error };
+  }
+
+  const resend = getResend();
+  if (!resend) {
+    const error = "Resend client unavailable";
+    console.warn(`[email] ${error}; skipping ${params.context}.`);
+    return { ok: false, error };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: getFromEmail(),
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+    });
+
+    if (error) {
+      console.error(`[email] Resend error (${params.context}):`, error);
+      return {
+        ok: false,
+        error: typeof error.message === "string" ? error.message : "Resend send failed",
+      };
+    }
+
+    console.log(`[email] Sent ${params.context}`, { id: data?.id, to: params.to });
+    return { ok: true, id: data?.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to send email";
+    console.error(`[email] Failed ${params.context}:`, err);
+    return { ok: false, error: message };
+  }
 }
 
 export type NewGroupDetails = {
@@ -27,21 +72,13 @@ export type NewGroupDetails = {
  * Sends an email to the approval recipient with new group details.
  * Does not throw; logs errors so group creation can still succeed.
  */
-export async function sendNewGroupApprovalEmail(group: NewGroupDetails): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY not set; skipping approval email.");
-    return;
-  }
-
-  const resend = getResend();
-  if (!resend) return;
-
-  try {
-    const { error } = await resend.emails.send({
-      from: getFromEmail(),
-      to: [APPROVAL_RECIPIENT],
-      subject: `[LetsMeet] New group for approval: ${group.name}`,
-      html: `
+export async function sendNewGroupApprovalEmail(
+  group: NewGroupDetails
+): Promise<EmailSendResult> {
+  return sendEmail({
+    to: [APPROVAL_RECIPIENT],
+    subject: `[LetsMeet] New group for approval: ${group.name}`,
+    html: `
         <h2>New group submitted for approval</h2>
         <p><strong>Name:</strong> ${escapeHtml(group.name)}</p>
         <p><strong>City:</strong> ${escapeHtml(group.city)}</p>
@@ -50,14 +87,8 @@ export async function sendNewGroupApprovalEmail(group: NewGroupDetails): Promise
         <p><strong>Group ID:</strong> ${group.id}</p>
         <p><strong>Owner ID (Clerk):</strong> ${escapeHtml(group.ownerId)}</p>
       `.replace(/\n\s+/g, "\n").trim(),
-    });
-
-    if (error) {
-      console.error("[email] Resend error:", error);
-    }
-  } catch (err) {
-    console.error("[email] Failed to send approval email:", err);
-  }
+    context: "group approval email",
+  });
 }
 
 export type ReportIssueDetails = {
@@ -71,21 +102,13 @@ export type ReportIssueDetails = {
  * Sends a "Report an issue" email to the same recipient as group approvals.
  * Does not throw; logs errors so the UI can show a generic message.
  */
-export async function sendReportIssueEmail(report: ReportIssueDetails): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY not set; skipping report issue email.");
-    return;
-  }
-
-  const resend = getResend();
-  if (!resend) return;
-
-  try {
-    const { error } = await resend.emails.send({
-      from: getFromEmail(),
-      to: [APPROVAL_RECIPIENT],
-      subject: `[LetsMeet] Report an issue from ${escapeHtml(report.email)}`,
-      html: `
+export async function sendReportIssueEmail(
+  report: ReportIssueDetails
+): Promise<EmailSendResult> {
+  return sendEmail({
+    to: [APPROVAL_RECIPIENT],
+    subject: `[LetsMeet] Report an issue from ${escapeHtml(report.email)}`,
+    html: `
         <h2>Report an issue</h2>
         <p><strong>From email:</strong> ${escapeHtml(report.email)}</p>
         <p><strong>User name:</strong> ${report.userName ? escapeHtml(report.userName) : "(not signed in)"}</p>
@@ -93,14 +116,21 @@ export async function sendReportIssueEmail(report: ReportIssueDetails): Promise<
         <p><strong>Message:</strong></p>
         <p>${escapeHtml(report.message)}</p>
       `.replace(/\n\s+/g, "\n").trim(),
-    });
+    context: "report issue email",
+  });
+}
 
-    if (error) {
-      console.error("[email] Resend error:", error);
-    }
-  } catch (err) {
-    console.error("[email] Failed to send report issue email:", err);
-  }
+export async function sendTestEmail(): Promise<EmailSendResult> {
+  return sendEmail({
+    to: [APPROVAL_RECIPIENT],
+    subject: "[LetsMeet] Email diagnostic test",
+    html: `
+        <h2>LetsMeet email test</h2>
+        <p>If you received this, Resend is configured and delivering to ${escapeHtml(APPROVAL_RECIPIENT)}.</p>
+        <p>Sent at: ${escapeHtml(new Date().toISOString())}</p>
+      `.replace(/\n\s+/g, "\n").trim(),
+    context: "diagnostic test email",
+  });
 }
 
 export type GroupMemberJoinRequestEmailDetails = {
@@ -124,26 +154,17 @@ export type GroupApprovedOwnerEmailDetails = {
  */
 export async function sendGroupMemberJoinRequestEmail(
   details: GroupMemberJoinRequestEmailDetails
-): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY not set; skipping join request email.");
-    return;
-  }
-
+): Promise<EmailSendResult> {
   if (!details.toEmail) {
-    console.warn("[email] Missing toEmail; skipping join request email.");
-    return;
+    const error = "Missing toEmail";
+    console.warn(`[email] ${error}; skipping join request email.`);
+    return { ok: false, error };
   }
 
-  const resend = getResend();
-  if (!resend) return;
-
-  try {
-    const { error } = await resend.emails.send({
-      from: getFromEmail(),
-      to: [details.toEmail],
-      subject: `[LetsMeet] Join request: ${details.groupName}`,
-      html: `
+  return sendEmail({
+    to: [details.toEmail],
+    subject: `[LetsMeet] Join request: ${details.groupName}`,
+    html: `
         <h2>New join request</h2>
         <p>
           <strong>${escapeHtml(details.requesterName)}</strong>
@@ -160,14 +181,8 @@ export async function sendGroupMemberJoinRequestEmail(
           This is an automated email from LetsMeet.
         </p>
       `.replace(/\n\s+/g, "\n").trim(),
-    });
-
-    if (error) {
-      console.error("[email] Resend error:", error);
-    }
-  } catch (err) {
-    console.error("[email] Failed to send join request email:", err);
-  }
+    context: "join request email",
+  });
 }
 
 /**
@@ -176,26 +191,17 @@ export async function sendGroupMemberJoinRequestEmail(
  */
 export async function sendGroupApprovedOwnerEmail(
   details: GroupApprovedOwnerEmailDetails
-): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY not set; skipping group approved email.");
-    return;
-  }
-
+): Promise<EmailSendResult> {
   if (!details.toEmail) {
-    console.warn("[email] Missing toEmail; skipping group approved email.");
-    return;
+    const error = "Missing toEmail";
+    console.warn(`[email] ${error}; skipping group approved email.`);
+    return { ok: false, error };
   }
 
-  const resend = getResend();
-  if (!resend) return;
-
-  try {
-    const { error } = await resend.emails.send({
-      from: getFromEmail(),
-      to: [details.toEmail],
-      subject: `[LetsMeet] Your group was approved: ${details.groupName}`,
-      html: `
+  return sendEmail({
+    to: [details.toEmail],
+    subject: `[LetsMeet] Your group was approved: ${details.groupName}`,
+    html: `
         <h2>Your group is now live</h2>
         <p>
           Great news - your group
@@ -209,14 +215,8 @@ export async function sendGroupApprovedOwnerEmail(
           This is an automated email from LetsMeet.
         </p>
       `.replace(/\n\s+/g, "\n").trim(),
-    });
-
-    if (error) {
-      console.error("[email] Resend error:", error);
-    }
-  } catch (err) {
-    console.error("[email] Failed to send group approved email:", err);
-  }
+    context: "group approved email",
+  });
 }
 
 function escapeHtml(text: string): string {

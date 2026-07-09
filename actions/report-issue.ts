@@ -30,12 +30,20 @@ export async function submitReportIssue(input: ReportIssueInput): Promise<Report
     user?.emailAddresses?.[0]?.emailAddress ||
     null;
 
-  await sendReportIssueEmail({
+  const emailResult = await sendReportIssueEmail({
     email: parsed.data.email,
     message: parsed.data.message,
     userName: userName ?? null,
     userId: userId ?? null,
   });
+
+  if (!emailResult.ok) {
+    return {
+      success: false,
+      error:
+        "We could not send your report right now. Please try again later or email jacqueline@letsmeet.uk directly.",
+    };
+  }
 
   return { success: true };
 }
