@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.1014.0",
+    "@aws-sdk/client-ssm": "^3.1014.0",
     "@clerk/nextjs": "^6.37.4",
     "@clerk/themes": "^2.4.52",
     "@neondatabase/serverless": "^1.0.2",

@@ -167,7 +167,12 @@ lines.push(
   "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/signed-up"
 );
 
-fs.appendFileSync(".env.production", `${lines.join("\n")}\n`);
+const staticTemplate = `# Generated during Amplify build. Do not commit real secrets.
+NODE_ENV=production
+AWS_REGION=eu-west-2
+`;
+
+fs.writeFileSync(".env.production", `${staticTemplate}${lines.join("\n")}\n`);
 console.log("Wrote secrets to .env.production");
 
 const dbUrl = resolved.DATABASE_URL;
