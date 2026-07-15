@@ -3,6 +3,8 @@ import { Poppins } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { SiteHeader } from "@/components/SiteHeader";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -14,11 +16,25 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "LetsMeet App",
   description: "Schedule and manage your meetings",
+  applicationName: "LetsMeet",
+  appleWebApp: {
+    capable: true,
+    title: "LetsMeet",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#09090b",
 };
 
@@ -41,6 +57,8 @@ export default function RootLayout({
     >
       <html lang="en" className="dark">
         <body className={`${poppins.variable} flex min-h-screen flex-col antialiased`}>
+          <ServiceWorkerRegistrar />
+          <InstallPrompt />
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <footer className="border-t border-border/40 px-4 py-6 text-center">
