@@ -47,9 +47,9 @@ export default function RootLayout({
     <ClerkProvider
       signInUrl="/"
       signUpUrl="/signed-up"
-      signInForceRedirectUrl="/billing"
+      signInForceRedirectUrl="/"
       signUpForceRedirectUrl="/signed-up"
-      signInFallbackRedirectUrl="/billing"
+      signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/signed-up"
       appearance={{
         baseTheme: dark,
