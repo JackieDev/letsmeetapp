@@ -469,6 +469,19 @@ export async function approveGroupById(id: number) {
     .where(eq(groupsTable.id, id));
 }
 
+/** Groups that are approved but whose owners have not been emailed yet. */
+export async function getGroupsPendingApprovalNotification() {
+  return db
+    .select()
+    .from(groupsTable)
+    .where(
+      and(
+        eq(groupsTable.isApproved, true),
+        eq(groupsTable.notifiedApproval, false)
+      )
+    );
+}
+
 /** Mark that the owner has been notified about approval. */
 export async function markGroupApprovalNotified(id: number) {
   await db

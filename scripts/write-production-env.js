@@ -10,6 +10,7 @@ const secretKeys = [
   "NEXT_PUBLIC_CLERK_BILLING_PLAN_ID",
   "NEXT_PUBLIC_CLERK_BILLING_PLAN_SLUG",
   "CLERK_WEBHOOK_SIGNING_SECRET",
+  "CRON_SECRET",
 ];
 
 function lookupSecretValue(secretsObj, key) {
