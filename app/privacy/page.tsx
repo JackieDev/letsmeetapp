@@ -192,7 +192,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <span className="text-foreground">Amazon Web Services (AWS)</span> —
-            hosting and secure storage of runtime configuration/secrets.
+            hosting.
           </li>
         </ul>
         <p className="text-muted-foreground leading-relaxed">
