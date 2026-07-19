@@ -19,10 +19,12 @@ type Props = {
 export function ProfileCard({ member }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageUploadWarning, setImageUploadWarning] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   async function handleSubmit(formData: FormData) {
     setError(null);
+    setImageUploadWarning(null);
     const name = formData.get("name")?.toString() ?? "";
     const currentProfilePicture = formData.get("currentProfilePicture")?.toString() ?? "";
     const city = formData.get("city")?.toString() ?? "";
@@ -30,32 +32,52 @@ export function ProfileCard({ member }: Props) {
     const uploadedFile = formData.get("profilePictureFile");
 
     let profilePicture = currentProfilePicture;
+    let imageFailedMessage: string | null = null;
+
     if (uploadedFile instanceof File && uploadedFile.size > 0) {
       if (uploadedFile.size > 2 * 1024 * 1024) {
-        setError("Profile picture must be 2MB or smaller.");
-        return;
+        imageFailedMessage =
+          "Image upload failed: profile picture must be 2MB or smaller. Your other profile details were saved.";
+      } else if (!uploadedFile.type.startsWith("image/")) {
+        imageFailedMessage =
+          "Image upload failed: please upload an image file. Your other profile details were saved.";
+      } else {
+        try {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve(typeof reader.result === "string" ? reader.result : "");
+            reader.onerror = () => reject(new Error("Failed to read uploaded image."));
+            reader.readAsDataURL(uploadedFile);
+          });
+          if (!dataUrl) {
+            imageFailedMessage =
+              "Image upload failed. Your other profile details were saved.";
+          } else {
+            profilePicture = dataUrl;
+          }
+        } catch {
+          imageFailedMessage =
+            "Image upload failed. Your other profile details were saved.";
+        }
       }
-      if (!uploadedFile.type.startsWith("image/")) {
-        setError("Please upload an image file.");
-        return;
-      }
-
-      profilePicture = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
-        reader.onerror = () => reject(new Error("Failed to read uploaded image."));
-        reader.readAsDataURL(uploadedFile);
-      });
     }
 
     startTransition(async () => {
-      await updateCurrentMemberProfile({
-        name,
-        profilePicture,
-        city,
-        interests,
-      });
-      setIsEditing(false);
+      try {
+        await updateCurrentMemberProfile({
+          name,
+          profilePicture,
+          city,
+          interests,
+        });
+        setIsEditing(false);
+        if (imageFailedMessage) {
+          setImageUploadWarning(imageFailedMessage);
+        }
+      } catch {
+        setError("Failed to save profile. Please try again.");
+      }
     });
   }
 
@@ -76,11 +98,24 @@ export function ProfileCard({ member }: Props) {
           </p>
         </div>
         {!isEditing ? (
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setImageUploadWarning(null);
+              setIsEditing(true);
+            }}
+          >
             Edit profile
           </Button>
         ) : null}
       </div>
+
+      {imageUploadWarning && !isEditing ? (
+        <p className="text-destructive mt-3 text-sm" role="alert">
+          {imageUploadWarning}
+        </p>
+      ) : null}
 
       <div className="mt-4 flex items-center gap-4">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-muted">
