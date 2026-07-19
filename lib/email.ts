@@ -120,6 +120,34 @@ export async function sendReportIssueEmail(
   });
 }
 
+export type ContactMessageDetails = {
+  name: string | null;
+  email: string;
+  message: string;
+  userId: string | null;
+};
+
+/**
+ * Sends a general contact/support email to the same recipient as group approvals.
+ */
+export async function sendContactEmail(
+  contact: ContactMessageDetails
+): Promise<EmailSendResult> {
+  return sendEmail({
+    to: [APPROVAL_RECIPIENT],
+    subject: `[LetsMeet] Contact form from ${escapeHtml(contact.email)}`,
+    html: `
+        <h2>Contact form message</h2>
+        <p><strong>From email:</strong> ${escapeHtml(contact.email)}</p>
+        <p><strong>Name:</strong> ${contact.name ? escapeHtml(contact.name) : "(not provided)"}</p>
+        <p><strong>User ID (Clerk):</strong> ${contact.userId ? escapeHtml(contact.userId) : "(not signed in)"}</p>
+        <p><strong>Message:</strong></p>
+        <p>${escapeHtml(contact.message)}</p>
+      `.replace(/\n\s+/g, "\n").trim(),
+    context: "contact form email",
+  });
+}
+
 export async function sendTestEmail(): Promise<EmailSendResult> {
   return sendEmail({
     to: [APPROVAL_RECIPIENT],

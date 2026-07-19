@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "LetsMeet — Community Groups & Events",
     short_name: "LetsMeet",
     description:
-      "Create and join community groups, schedule events, and manage your meetups.",
+      "Create and join community groups, and schedule and manage your events.",
     id: "/",
     start_url: "/",
     scope: "/",
