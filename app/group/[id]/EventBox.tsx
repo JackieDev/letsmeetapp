@@ -11,6 +11,7 @@ import {
 } from "@/actions/events";
 import type { Event } from "@/db/queries/events";
 import { Button } from "@/components/ui/button";
+import { formatAppDateTime } from "@/lib/datetime";
 
 type EventBoxProps = {
   event: Event;
@@ -69,7 +70,7 @@ export function EventBox({
           {event.name}
         </Link>
         <span className="text-muted-foreground">
-          {new Date(event.eventDate).toLocaleString()}
+          {formatAppDateTime(event.eventDate)}
           {event.location ? ` · ${event.location}` : ""}
         </span>
         <span className="text-muted-foreground text-xs">

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { approveGroup, deletePendingGroup } from "@/actions/groups";
 import { Button } from "@/components/ui/button";
+import { formatAppDateTime } from "@/lib/datetime";
 
 type PendingGroup = {
   id: number;
@@ -100,7 +101,7 @@ export function PendingGroupsAdminTab({ pendingGroups }: PendingGroupsAdminTabPr
                   </p>
                   <p className="text-muted-foreground text-xs">
                     Owner ID: {group.ownerId} · Submitted{" "}
-                    {new Date(group.createdAt).toLocaleString()}
+                    {formatAppDateTime(group.createdAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 sm:shrink-0">

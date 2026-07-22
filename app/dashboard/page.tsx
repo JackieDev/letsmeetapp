@@ -21,6 +21,7 @@ import { getMemberByUserId } from "@/db/queries/members";
 import { tryActivateMemberFromClerkSubscription } from "@/lib/activate-member-from-clerk";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
 import { formatTrialEndDate } from "@/lib/free-trial";
+import { formatAppDateTime } from "@/lib/datetime";
 import { getMemberAccessStatus } from "@/lib/member-access";
 
 export const dynamic = "force-dynamic";
@@ -299,7 +300,7 @@ export default async function DashboardPage({
                               {event.groupName}
                             </span>
                             <span className="text-muted-foreground text-base">
-                              {new Date(event.eventDate).toLocaleString()}
+                              {formatAppDateTime(event.eventDate)}
                               {event.location ? ` · ${event.location}` : ""}
                             </span>
                             <Link
@@ -341,7 +342,7 @@ export default async function DashboardPage({
                               {event.groupName}
                             </span>
                             <span className="text-muted-foreground text-base">
-                              {new Date(event.eventDate).toLocaleString()}
+                              {formatAppDateTime(event.eventDate)}
                               {event.location ? ` · ${event.location}` : ""}
                             </span>
                             <Link

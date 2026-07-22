@@ -15,12 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-function toDatetimeLocalValue(date: Date | string) {
-  const d = new Date(date);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+import { toLondonDatetimeLocalValue } from "@/lib/datetime";
 
 type EditEventDialogProps = {
   event: {
@@ -79,7 +74,7 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
       eventId: event.id,
       name,
       description: description || undefined,
-      eventDate: new Date(eventDate).toISOString(),
+      eventDate,
       location: location || undefined,
       attendeeLimit,
     });
@@ -128,12 +123,12 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="edit-event-date">Date & time</Label>
+            <Label htmlFor="edit-event-date">Date & time (UK — GMT/BST)</Label>
             <Input
               id="edit-event-date"
               name="eventDate"
               type="datetime-local"
-              defaultValue={toDatetimeLocalValue(event.eventDate)}
+              defaultValue={toLondonDatetimeLocalValue(event.eventDate)}
               required
               disabled={isSubmitting}
             />

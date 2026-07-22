@@ -19,6 +19,7 @@ import {
   setGroupMemberApprovalRequirement,
   toggleBanGroupMember,
 } from "@/actions/groups";
+import { formatAppDateTime } from "@/lib/datetime";
 
 type GroupMember = {
   id: number;
@@ -154,10 +155,7 @@ export function ManageMembersDialog({
           ) : (
             members.map((member) => {
               const isPending = !member.isBanned && !member.isMemberApproved;
-              const joined =
-                member.joinedAt instanceof Date
-                  ? member.joinedAt.toLocaleString()
-                  : new Date(member.joinedAt).toLocaleString();
+              const joined = formatAppDateTime(member.joinedAt);
               const isOwnerRow = member.userId === ownerId;
               const isSelf = member.userId === currentUserId;
 

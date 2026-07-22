@@ -13,6 +13,7 @@ import { AddEventNoteForm } from "./AddEventNoteForm";
 import { CancelAttendanceButton } from "./CancelAttendanceButton";
 import { DeleteEventButton } from "./DeleteEventButton";
 import { EditEventDialog } from "./EditEventDialog";
+import { formatAppDateTime } from "@/lib/datetime";
 
 export default async function EventPage({
   params,
@@ -91,7 +92,7 @@ export default async function EventPage({
           <dl className="text-muted-foreground mt-4 flex flex-col gap-1 text-sm">
             <span>
               <span className="font-medium text-foreground">Date & time:</span>{" "}
-              {new Date(event.eventDate).toLocaleString()}
+              {formatAppDateTime(event.eventDate)}
             </span>
             {event.location ? (
               <span>
@@ -145,7 +146,7 @@ export default async function EventPage({
                     {attendeeNames[a.userId] ?? "Unknown"}
                   </span>
                   <span className="text-muted-foreground text-xs">
-                    Signed up {new Date(a.signedUpAt).toLocaleString()}
+                    Signed up {formatAppDateTime(a.signedUpAt)}
                   </span>
                   {a.comments ? (
                     <p className="text-muted-foreground mt-1 text-sm">
@@ -181,7 +182,7 @@ export default async function EventPage({
                     {attendeeNames[note.userId] ?? "Unknown"}
                   </span>
                   <span className="text-muted-foreground text-xs">
-                    {new Date(note.createdAt).toLocaleString()}
+                    {formatAppDateTime(note.createdAt)}
                   </span>
                   <p className="mt-1 whitespace-pre-wrap">{note.content}</p>
                 </li>

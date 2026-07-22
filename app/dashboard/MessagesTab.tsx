@@ -6,6 +6,7 @@ import type { MessageWithUsers } from "@/db/queries/messages";
 import { sendMessageToUser } from "@/actions/messages";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { formatAppDateTime } from "@/lib/datetime";
 
 type Props = {
   messages: MessageWithUsers[];
@@ -218,7 +219,7 @@ export function MessagesTab({ messages, currentUserId }: Props) {
                             {authorLabel}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(message.createdAt).toLocaleString()}
+                            {formatAppDateTime(message.createdAt)}
                           </span>
                         </div>
                         <p className="mt-1 whitespace-pre-wrap text-sm">

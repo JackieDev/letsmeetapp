@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getUpcomingEventsForUserGroups } from "@/db/queries/events";
 import { buttonVariants } from "@/components/ui/button";
+import { formatAppDateTime } from "@/lib/datetime";
 
 export default async function CalendarPage() {
   const { userId } = await auth();
@@ -45,7 +46,7 @@ export default async function CalendarPage() {
                     {event.groupName}
                   </span>
                   <span className="text-muted-foreground text-base">
-                    {new Date(event.eventDate).toLocaleString()}
+                    {formatAppDateTime(event.eventDate)}
                     {event.location ? ` · ${event.location}` : ""}
                   </span>
                   <span

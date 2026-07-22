@@ -50,12 +50,12 @@ export function AddEventDialog({ groupId }: AddEventDialogProps) {
       return;
     }
 
-    // datetime-local gives "YYYY-MM-DDTHH:mm", convert to ISO for server
+    // datetime-local is UK wall time (GMT/BST); server parses as Europe/London
     const result: CreateEventResult = await createEvent({
       groupId,
       name,
       description: description || undefined,
-      eventDate: new Date(eventDate).toISOString(),
+      eventDate,
       location: location || undefined,
       attendeeLimit,
     });
@@ -96,7 +96,7 @@ export function AddEventDialog({ groupId }: AddEventDialogProps) {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="event-date">Date & time</Label>
+            <Label htmlFor="event-date">Date & time (UK — GMT/BST)</Label>
             <Input
               id="event-date"
               name="eventDate"

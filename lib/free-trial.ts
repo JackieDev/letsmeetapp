@@ -16,6 +16,7 @@ export function isWithinFreeTrial(signedUpAt: Date, now = new Date()): boolean {
 
 export function formatTrialEndDate(date: Date): string {
   return date.toLocaleDateString("en-GB", {
+    timeZone: "Europe/London",
     day: "numeric",
     month: "long",
     year: "numeric",

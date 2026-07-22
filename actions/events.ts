@@ -22,6 +22,7 @@ import {
   updateEventById,
 } from "@/db/queries/events";
 import { insertNotifications, insertNotification } from "@/db/queries/notifications";
+import { parseEventDateInput } from "@/lib/datetime";
 
 const createEventSchema = z.object({
   groupId: z.number().int().positive(),
@@ -69,7 +70,7 @@ export async function createEvent(
     return { success: false, error: "Only the group owner can add events." };
   }
 
-  const eventDate = new Date(parsed.data.eventDate);
+  const eventDate = parseEventDateInput(parsed.data.eventDate);
   if (Number.isNaN(eventDate.getTime())) {
     return { success: false, error: "Invalid date." };
   }
@@ -156,7 +157,7 @@ export async function updateEvent(
     return { success: false, error: "You can only edit events you created." };
   }
 
-  const eventDate = new Date(parsed.data.eventDate);
+  const eventDate = parseEventDateInput(parsed.data.eventDate);
   if (Number.isNaN(eventDate.getTime())) {
     return { success: false, error: "Invalid date." };
   }
