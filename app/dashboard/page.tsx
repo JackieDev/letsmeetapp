@@ -2,7 +2,10 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getEventsUserIsAttending } from "@/db/queries/events";
+import {
+  getEventsUserIsAttending,
+  getUpcomingEventsForUserGroups,
+} from "@/db/queries/events";
 import { getGroupsUserIsMemberOf, getPendingGroupsForApproval } from "@/db/queries/groups";
 import { buttonVariants } from "@/components/ui/button";
 import { LeaveGroupButton } from "@/app/group/[id]/LeaveGroupButton";
@@ -92,13 +95,19 @@ export default async function DashboardPage({
   };
 
   let allAttendingEvents: Awaited<ReturnType<typeof getEventsUserIsAttending>> = [];
+  let otherGroupEvents: Awaited<ReturnType<typeof getUpcomingEventsForUserGroups>> = [];
   let memberGroups: Awaited<ReturnType<typeof getGroupsUserIsMemberOf>> = [];
   let messages: Awaited<ReturnType<typeof getMessagesForUser>> = [];
   let notifications: Awaited<ReturnType<typeof getNotificationsForUser>> = [];
   let unreadNotificationCount = 0;
 
   if (defaultTab === "events") {
-    allAttendingEvents = await getEventsUserIsAttending(userId);
+    const [attending, groupEvents] = await Promise.all([
+      getEventsUserIsAttending(userId),
+      getUpcomingEventsForUserGroups(userId),
+    ]);
+    allAttendingEvents = attending;
+    otherGroupEvents = groupEvents.filter((e) => !e.isSignedUp);
   }
 
   if (defaultTab === "groups") {
@@ -165,7 +174,7 @@ export default async function DashboardPage({
                 <Link href="/dashboard?tab=profile">Profile</Link>
               </TabsTrigger>
               <TabsTrigger value="events" asChild>
-                <Link href="/dashboard?tab=events">Attending Events</Link>
+                <Link href="/dashboard?tab=events">Events</Link>
               </TabsTrigger>
               <TabsTrigger value="groups" asChild>
                 <Link href="/dashboard?tab=groups">Groups</Link>
@@ -266,46 +275,90 @@ export default async function DashboardPage({
 
             {defaultTab === "events" ? (
               <TabsContent value="events">
-                <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
-                  <h2 className="text-xl font-medium">Events you&apos;re signed up for</h2>
-                  {attendingEvents.length === 0 ? (
-                    <p className="text-muted-foreground mt-2 text-base">
-                      You haven&apos;t signed up for any events yet. Browse groups to find events.
-                    </p>
-                  ) : (
-                    <ul className="mt-3 space-y-2">
-                      {attendingEvents.map((event) => (
-                        <li
-                          key={event.id}
-                          className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background p-3 text-base"
-                        >
-                          <Link
-                            href={`/group/${event.groupId}/event/${event.id}`}
-                            className="font-medium text-primary hover:underline"
+                <div className="flex flex-col gap-6">
+                  <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+                    <h2 className="text-xl font-medium">Events you&apos;re signed up for</h2>
+                    {attendingEvents.length === 0 ? (
+                      <p className="text-muted-foreground mt-2 text-base">
+                        You haven&apos;t signed up for any events yet. Browse groups to find events.
+                      </p>
+                    ) : (
+                      <ul className="mt-3 space-y-2">
+                        {attendingEvents.map((event) => (
+                          <li
+                            key={event.id}
+                            className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background p-3 text-base"
                           >
-                            {event.name}
-                          </Link>
-                          <span className="text-muted-foreground text-sm">
-                            {event.groupName}
-                          </span>
-                          <span className="text-muted-foreground text-base">
-                            {new Date(event.eventDate).toLocaleString()}
-                            {event.location ? ` · ${event.location}` : ""}
-                          </span>
-                          <Link
-                            href={`/group/${event.groupId}/event/${event.id}`}
-                            className={buttonVariants({
-                              variant: "secondary",
-                              size: "sm",
-                              className: "scale-110 w-fit self-end",
-                            })}
+                            <Link
+                              href={`/group/${event.groupId}/event/${event.id}`}
+                              className="font-medium text-primary hover:underline"
+                            >
+                              {event.name}
+                            </Link>
+                            <span className="text-muted-foreground text-sm">
+                              {event.groupName}
+                            </span>
+                            <span className="text-muted-foreground text-base">
+                              {new Date(event.eventDate).toLocaleString()}
+                              {event.location ? ` · ${event.location}` : ""}
+                            </span>
+                            <Link
+                              href={`/group/${event.groupId}/event/${event.id}`}
+                              className={buttonVariants({
+                                variant: "secondary",
+                                size: "sm",
+                                className: "scale-110 w-fit self-end",
+                              })}
+                            >
+                              View event
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+                    <h2 className="text-xl font-medium">Other events in your groups</h2>
+                    {otherGroupEvents.length === 0 ? (
+                      <p className="text-muted-foreground mt-2 text-base">
+                        There are no other upcoming events in your groups right now.
+                      </p>
+                    ) : (
+                      <ul className="mt-3 space-y-2">
+                        {otherGroupEvents.map((event) => (
+                          <li
+                            key={event.id}
+                            className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background p-3 text-base"
                           >
-                            View event
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                            <Link
+                              href={`/group/${event.groupId}/event/${event.id}`}
+                              className="font-medium text-primary hover:underline"
+                            >
+                              {event.name}
+                            </Link>
+                            <span className="text-muted-foreground text-sm">
+                              {event.groupName}
+                            </span>
+                            <span className="text-muted-foreground text-base">
+                              {new Date(event.eventDate).toLocaleString()}
+                              {event.location ? ` · ${event.location}` : ""}
+                            </span>
+                            <Link
+                              href={`/group/${event.groupId}/event/${event.id}`}
+                              className={buttonVariants({
+                                variant: "secondary",
+                                size: "sm",
+                                className: "scale-110 w-fit self-end",
+                              })}
+                            >
+                              View event
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
             ) : null}
