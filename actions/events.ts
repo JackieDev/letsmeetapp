@@ -19,6 +19,7 @@ import {
   isUserAttendingEvent,
   deleteEventAttendee,
   deleteEventById,
+  updateEventById,
 } from "@/db/queries/events";
 import { insertNotifications, insertNotification } from "@/db/queries/notifications";
 
@@ -103,6 +104,87 @@ export async function createEvent(
   }
 
   revalidatePath(`/group/${parsed.data.groupId}`);
+
+  return { success: true };
+}
+
+const updateEventSchema = z.object({
+  eventId: z.number().int().positive(),
+  name: z.string().min(1, "Name is required").max(255),
+  description: z.string().max(2000).optional(),
+  eventDate: z.string().min(1, "Date is required"),
+  location: z.string().max(500).optional(),
+  attendeeLimit: z.number().int().positive().optional(),
+});
+
+export type UpdateEventInput = z.infer<typeof updateEventSchema>;
+
+export type UpdateEventResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function updateEvent(
+  input: UpdateEventInput
+): Promise<UpdateEventResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, error: "You must be signed in to edit an event." };
+  }
+
+  const parsed = updateEventSchema.safeParse(input);
+  if (!parsed.success) {
+    const flattened = parsed.error.flatten().fieldErrors;
+    const message =
+      [
+        flattened.name?.[0],
+        flattened.eventDate?.[0],
+        flattened.description?.[0],
+        flattened.location?.[0],
+        flattened.attendeeLimit?.[0],
+      ]
+        .filter(Boolean)
+        .join(" ") || "Invalid input.";
+    return { success: false, error: message };
+  }
+
+  const event = await getEventById(parsed.data.eventId);
+  if (!event) {
+    return { success: false, error: "Event not found." };
+  }
+
+  if (event.organizerId !== userId) {
+    return { success: false, error: "You can only edit events you created." };
+  }
+
+  const eventDate = new Date(parsed.data.eventDate);
+  if (Number.isNaN(eventDate.getTime())) {
+    return { success: false, error: "Invalid date." };
+  }
+  if (eventDate.getTime() <= Date.now()) {
+    return { success: false, error: "Event date must be in the future." };
+  }
+
+  const attendeeLimit = parsed.data.attendeeLimit ?? null;
+  if (attendeeLimit != null) {
+    const attendees = await getAttendeesByEventId(parsed.data.eventId);
+    if (attendeeLimit < attendees.length) {
+      return {
+        success: false,
+        error: `Max attendees cannot be lower than the current signup count (${attendees.length}).`,
+      };
+    }
+  }
+
+  await updateEventById(parsed.data.eventId, {
+    name: parsed.data.name,
+    description: parsed.data.description ?? null,
+    eventDate,
+    location: parsed.data.location ?? null,
+    attendeeLimit,
+  });
+
+  revalidatePath(`/group/${event.groupId}`);
+  revalidatePath(`/group/${event.groupId}/event/${event.id}`);
 
   return { success: true };
 }

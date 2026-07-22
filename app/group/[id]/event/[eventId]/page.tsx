@@ -12,6 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { AddEventNoteForm } from "./AddEventNoteForm";
 import { CancelAttendanceButton } from "./CancelAttendanceButton";
 import { DeleteEventButton } from "./DeleteEventButton";
+import { EditEventDialog } from "./EditEventDialog";
 
 export default async function EventPage({
   params,
@@ -105,7 +106,17 @@ export default async function EventPage({
             </div>
           )}
           {isCurrentUserOrganizer && (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-start gap-2">
+              <EditEventDialog
+                event={{
+                  id: event.id,
+                  name: event.name,
+                  description: event.description,
+                  eventDate: event.eventDate.toISOString(),
+                  location: event.location,
+                  attendeeLimit: event.attendeeLimit,
+                }}
+              />
               <DeleteEventButton groupId={groupId} eventId={eventId} />
             </div>
           )}

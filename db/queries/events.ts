@@ -43,6 +43,25 @@ export async function insertEvent(data: {
   return event!;
 }
 
+/** Update an existing event by id. Returns the updated event, or null if not found. */
+export async function updateEventById(
+  eventId: number,
+  data: {
+    name: string;
+    description: string | null;
+    eventDate: Date;
+    location: string | null;
+    attendeeLimit: number | null;
+  }
+) {
+  const [event] = await db
+    .update(eventsTable)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(eventsTable.id, eventId))
+    .returning();
+  return event ?? null;
+}
+
 /** Add an attendee to an event. */
 export async function insertEventAttendee(data: {
   eventId: number;
