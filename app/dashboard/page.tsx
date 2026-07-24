@@ -9,6 +9,7 @@ import {
 import { getGroupsUserIsMemberOf, getPendingGroupsForApproval } from "@/db/queries/groups";
 import { buttonVariants } from "@/components/ui/button";
 import { LeaveGroupButton } from "@/app/group/[id]/LeaveGroupButton";
+import { CreateGroupForm } from "@/app/groups/new/CreateGroupForm";
 import { getMessagesForUser } from "@/db/queries/messages";
 import { getNotificationsForUser, getUnreadNotificationCount } from "@/db/queries/notifications";
 import { ProfileCard } from "./ProfileCard";
@@ -23,6 +24,7 @@ import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
 import { formatTrialEndDate } from "@/lib/free-trial";
 import { formatAppDateTime } from "@/lib/datetime";
 import { getMemberAccessStatus } from "@/lib/member-access";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -208,68 +210,88 @@ export default async function DashboardPage({
 
             {defaultTab === "groups" ? (
               <TabsContent value="groups">
-                <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
-                  <h2 className="text-xl font-medium">Groups you&apos;re in</h2>
-                  {sortedMemberGroups.length === 0 ? (
-                    <p className="text-muted-foreground mt-2 text-base">
-                      You&apos;re not in any groups yet. Search groups to find one to join.
+                <div className="flex flex-col gap-6">
+                  <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
+                    <h2 className="text-xl font-medium">Groups you&apos;re in</h2>
+                    {sortedMemberGroups.length === 0 ? (
+                      <p className="text-muted-foreground mt-2 text-base">
+                        You&apos;re not in any groups yet. Search groups to find one to join.
+                      </p>
+                    ) : (
+                      <ul className="mt-3 space-y-2">
+                        {sortedMemberGroups.map((group) => (
+                          <li
+                            key={group.id}
+                            className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3 text-base"
+                          >
+                            {group.profilePicture ? (
+                              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                                <img
+                                  src={group.profilePicture}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-xl">
+                                —
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <Link
+                                href={`/group/${group.id}`}
+                                className="font-medium text-primary hover:underline"
+                              >
+                                {group.name}
+                              </Link>
+                              <span className="text-muted-foreground ml-2 text-sm">
+                                {group.city}
+                                {group.ownerId === userId ? " · You own this group" : null}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {group.ownerId !== userId ? (
+                                <LeaveGroupButton
+                                  groupId={group.id}
+                                  variant="outline"
+                                  size="sm"
+                                  className="shrink-0"
+                                />
+                              ) : null}
+                              <Link
+                                href={`/group/${group.id}`}
+                                className={buttonVariants({
+                                  variant: "secondary",
+                                  size: "sm",
+                                  className: "scale-110",
+                                })}
+                              >
+                                View
+                              </Link>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <details className="group rounded-lg border border-border/40 bg-card p-4 text-card-foreground shadow-sm">
+                    <summary
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "lg" }),
+                        "w-full cursor-pointer justify-center list-none [&::-webkit-details-marker]:hidden",
+                      )}
+                    >
+                      Create new group
+                    </summary>
+                    <p className="text-muted-foreground mt-4 text-sm">
+                      New groups require approval which takes up to 3 days. These will be notified by
+                      email.
                     </p>
-                  ) : (
-                    <ul className="mt-3 space-y-2">
-                      {sortedMemberGroups.map((group) => (
-                        <li
-                          key={group.id}
-                          className="flex items-center gap-3 rounded-md border border-border/40 bg-background p-3 text-base"
-                        >
-                          {group.profilePicture ? (
-                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                              <img
-                                src={group.profilePicture}
-                                alt=""
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-xl">
-                              —
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <Link
-                              href={`/group/${group.id}`}
-                              className="font-medium text-primary hover:underline"
-                            >
-                              {group.name}
-                            </Link>
-                            <span className="text-muted-foreground ml-2 text-sm">
-                              {group.city}
-                              {group.ownerId === userId ? " · You own this group" : null}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {group.ownerId !== userId ? (
-                              <LeaveGroupButton
-                                groupId={group.id}
-                                variant="outline"
-                                size="sm"
-                                className="shrink-0"
-                              />
-                            ) : null}
-                            <Link
-                              href={`/group/${group.id}`}
-                              className={buttonVariants({
-                                variant: "secondary",
-                                size: "sm",
-                                className: "scale-110",
-                              })}
-                            >
-                              View
-                            </Link>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                    <div className="mt-4">
+                      <CreateGroupForm />
+                    </div>
+                  </details>
                 </div>
               </TabsContent>
             ) : null}
