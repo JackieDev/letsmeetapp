@@ -69,10 +69,16 @@ export function EventBox({
         >
           {event.name}
         </Link>
-        <span className="text-muted-foreground">
-          {formatAppDateTime(event.eventDate)}
-          {event.location ? ` · ${event.location}` : ""}
-        </span>
+        {isMember ? (
+          <span className="text-muted-foreground">
+            {formatAppDateTime(event.eventDate)}
+            {event.location ? ` · ${event.location}` : ""}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">
+            Join this group to see date, time, and location
+          </span>
+        )}
         <span className="text-muted-foreground text-xs">
           {event.attendeeLimit != null
             ? `${attendeeCount} / ${event.attendeeLimit} ${event.attendeeLimit === 1 ? "attendee" : "attendees"}`

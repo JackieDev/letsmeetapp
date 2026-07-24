@@ -1,7 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import {
   getApprovedGroup,
   getGroupMemberCount,
@@ -33,9 +33,6 @@ export default async function GroupPage({
   params: Promise<{ id: string }>;
 }) {
   const { userId } = await auth();
-  if (!userId) {
-    redirect("/");
-  }
 
   const { id } = await params;
   const groupId = Number(id);
@@ -61,12 +58,14 @@ export default async function GroupPage({
   ] = await Promise.all([
     getEventsByGroupId(groupId),
     getGroupMemberCount(groupId),
-    isUserGroupMember(groupId, userId),
+    userId ? isUserGroupMember(groupId, userId) : Promise.resolve(false),
     getAttendeeCountsForGroupEvents(groupId),
-    getEventIdsUserAttendingInGroup(groupId, userId),
+    userId
+      ? getEventIdsUserAttendingInGroup(groupId, userId)
+      : Promise.resolve(new Set<number>()),
     getGroupMembers(groupId),
     getApprovedGroupMembersWithProfiles(groupId),
-    isUserBannedFromGroup(groupId, userId),
+    userId ? isUserBannedFromGroup(groupId, userId) : Promise.resolve(false),
     getGroupMemberPhotos(groupId),
   ]);
 
@@ -79,14 +78,18 @@ export default async function GroupPage({
     // keep "Unknown" if Clerk lookup fails
   }
 
-  const isOwner = userId === group.ownerId;
-  const currentMembership = members.find((m) => m.userId === userId) ?? null;
+  const isOwner = !!userId && userId === group.ownerId;
+  const currentMembership =
+    userId != null ? (members.find((m) => m.userId === userId) ?? null) : null;
   const isPendingMembership =
     !!currentMembership &&
     !currentMembership.isBanned &&
     !currentMembership.isMemberApproved;
 
-  const canJoinGroup = !isOwner && !isMember && !isBanned && !isPendingMembership;
+  const canJoinGroup =
+    !!userId && !isOwner && !isMember && !isBanned && !isPendingMembership;
+  const canSignInToJoin =
+    !userId && !isBanned && !isPendingMembership;
 
   const now = new Date();
   const upcomingEvents = events.filter((e) => new Date(e.eventDate) >= now);
@@ -138,7 +141,7 @@ export default async function GroupPage({
                 </span>
               </dl>
             </div>
-            {isOwner ? (
+            {isOwner && userId ? (
               <div className="mt-4 flex shrink-0 flex-col gap-2 sm:mt-0 sm:flex-col">
                 <ManageGroupDialog
                   groupId={groupId}
@@ -158,6 +161,15 @@ export default async function GroupPage({
               <div className="mt-4 shrink-0 sm:mt-0">
                 <JoinGroupButton groupId={groupId} />
               </div>
+            ) : canSignInToJoin ? (
+              <div className="mt-4 shrink-0 sm:mt-0">
+                <Link
+                  href="/"
+                  className={cn(buttonVariants({ size: "sm" }))}
+                >
+                  Sign in to join
+                </Link>
+              </div>
             ) : isPendingMembership ? (
               <div className="mt-4 shrink-0 sm:mt-0">
                 <p className="text-muted-foreground text-sm">
@@ -176,7 +188,7 @@ export default async function GroupPage({
         <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-medium">Upcoming events ({upcomingEvents.length})</h2>
-            {userId === group.ownerId ? (
+            {isOwner ? (
               <AddEventDialog groupId={groupId} />
             ) : null}
           </div>

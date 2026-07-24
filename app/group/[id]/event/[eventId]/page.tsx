@@ -1,8 +1,8 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getApprovedGroup } from "@/db/queries/groups";
+import { notFound } from "next/navigation";
+import { getApprovedGroup, isUserGroupMember } from "@/db/queries/groups";
 import {
   getEventById,
   getAttendeesByEventId,
@@ -21,9 +21,6 @@ export default async function EventPage({
   params: Promise<{ id: string; eventId: string }>;
 }) {
   const { userId } = await auth();
-  if (!userId) {
-    redirect("/");
-  }
 
   const { id, eventId: eventIdParam } = await params;
   const groupId = Number(id);
@@ -41,12 +38,14 @@ export default async function EventPage({
     notFound();
   }
 
-  const [attendees, notes] = await Promise.all([
+  const [attendees, notes, isMember] = await Promise.all([
     getAttendeesByEventId(eventId),
     getEventNotesByEventId(eventId),
+    userId ? isUserGroupMember(groupId, userId) : Promise.resolve(false),
   ]);
-  const isCurrentUserAttending = attendees.some((a) => a.userId === userId);
-  const isCurrentUserOrganizer = event.organizerId === userId;
+  const isCurrentUserAttending =
+    !!userId && attendees.some((a) => a.userId === userId);
+  const isCurrentUserOrganizer = !!userId && event.organizerId === userId;
 
   const noteAuthorIds = [...new Set(notes.map((n) => n.userId))];
   const allUserIds = [...new Set([...attendees.map((a) => a.userId), ...noteAuthorIds])];
@@ -90,16 +89,22 @@ export default async function EventPage({
             <p className="text-muted-foreground mt-2 text-sm">{event.description}</p>
           ) : null}
           <dl className="text-muted-foreground mt-4 flex flex-col gap-1 text-sm">
-            <span>
-              <span className="font-medium text-foreground">Date & time:</span>{" "}
-              {formatAppDateTime(event.eventDate)}
-            </span>
-            {event.location ? (
-              <span>
-                <span className="font-medium text-foreground">Location:</span>{" "}
-                {event.location}
-              </span>
-            ) : null}
+            {isMember ? (
+              <>
+                <span>
+                  <span className="font-medium text-foreground">Date & time:</span>{" "}
+                  {formatAppDateTime(event.eventDate)}
+                </span>
+                {event.location ? (
+                  <span>
+                    <span className="font-medium text-foreground">Location:</span>{" "}
+                    {event.location}
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <span>Join this group to see date, time, and location.</span>
+            )}
           </dl>
           {isCurrentUserAttending && (
             <div className="mt-4">
