@@ -36,12 +36,21 @@ async function sendEmail(params: {
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const sendPromise = resend.emails.send({
       from: getFromEmail(),
       to: params.to,
       subject: params.subject,
       html: params.html,
     });
+
+    // Resend has been observed to hang indefinitely in some SSR environments.
+    const timeoutMs = 12_000;
+    const { data, error } = await Promise.race([
+      sendPromise,
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error(`Resend timed out after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
 
     if (error) {
       console.error(`[email] Resend error (${params.context}):`, error);

@@ -23,21 +23,25 @@ export function CreateGroupForm() {
     const description = (form.elements.namedItem("description") as HTMLInputElement).value.trim();
     const city = (form.elements.namedItem("city") as HTMLInputElement).value.trim();
 
-    const result: CreateGroupResult = await createGroup({
-      name,
-      description: description || undefined,
-      city,
-    });
+    try {
+      const result: CreateGroupResult = await createGroup({
+        name,
+        description: description || undefined,
+        city,
+      });
 
-    setIsSubmitting(false);
+      if (result.success) {
+        form.reset();
+        setSuccessMessage("Your group has been submitted for approval.");
+        return;
+      }
 
-    if (result.success) {
-      form.reset();
-      setSuccessMessage("Your group has been submitted for approval.");
-      return;
+      setError(result.error);
+    } catch {
+      setError("Something went wrong creating your group. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setError(result.error);
   }
 
   return (

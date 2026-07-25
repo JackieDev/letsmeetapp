@@ -2,6 +2,7 @@
 
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import {
   sendGroupMemberJoinRequestEmail,
@@ -57,47 +58,62 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
 
   const { name, description, city } = parsed.data;
 
-  const existing = await getGroupByNameAndCity(name, city);
-  if (existing) {
+  try {
+    const existing = await getGroupByNameAndCity(name, city);
+    if (existing) {
+      return {
+        success: false,
+        error: "A group with this name already exists in this city.",
+      };
+    }
+
+    const group = await insertGroup({
+      name,
+      description: description ?? null,
+      city,
+      ownerId: userId,
+    });
+    const user = await currentUser();
+    const first = user?.firstName?.trim() ?? "";
+    const lastInitial = user?.lastName?.trim()?.[0] ?? "";
+    const memberName =
+      [first, lastInitial].filter(Boolean).join(" ") ||
+      user?.emailAddresses?.[0]?.emailAddress ||
+      "Group owner";
+    await addGroupMember({
+      groupId: group.id,
+      userId,
+      name: memberName.slice(0, 255),
+      role: "owner",
+    });
+
+    // Don't block the form response on Resend — a slow/hung email looked like a hang.
+    after(async () => {
+      try {
+        await sendNewGroupApprovalEmail({
+          id: group.id,
+          name: group.name,
+          description: group.description,
+          city: group.city,
+          ownerId: group.ownerId,
+        });
+      } catch (err) {
+        console.error("[createGroup] Failed to send approval email:", err);
+      }
+    });
+
+    revalidatePath("/groups");
+    revalidatePath("/groups/search");
+    revalidatePath("/dashboard");
+
+    return { success: true, groupId: group.id };
+  } catch (err) {
+    console.error("[createGroup] Failed to create group:", err);
     return {
       success: false,
-      error: "A group with this name already exists in this city.",
+      error: "Something went wrong creating your group. Please try again.",
     };
   }
-
-  const group = await insertGroup({
-    name,
-    description: description ?? null,
-    city,
-    ownerId: userId,
-  });
-  const user = await currentUser();
-  const first = user?.firstName?.trim() ?? "";
-  const lastInitial = user?.lastName?.trim()?.[0] ?? "";
-  const memberName =
-    [first, lastInitial].filter(Boolean).join(" ") ||
-    user?.emailAddresses?.[0]?.emailAddress ||
-    "Group owner";
-  await addGroupMember({
-    groupId: group.id,
-    userId,
-    name: memberName.slice(0, 255),
-    role: "owner",
-  });
-
-  await sendNewGroupApprovalEmail({
-    id: group.id,
-    name: group.name,
-    description: group.description,
-    city: group.city,
-    ownerId: group.ownerId,
-  });
-
-  revalidatePath("/groups");
-  revalidatePath("/groups/search");
-  revalidatePath("/dashboard");
-
-  return { success: true, groupId: group.id };
 }
 
 const approveGroupSchema = z.object({
