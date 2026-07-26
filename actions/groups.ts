@@ -2,7 +2,6 @@
 
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { z } from "zod";
 import {
   sendGroupMemberJoinRequestEmail,
@@ -58,6 +57,7 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
 
   const { name, description, city } = parsed.data;
 
+  let group: Awaited<ReturnType<typeof insertGroup>>;
   try {
     const existing = await getGroupByNameAndCity(name, city);
     if (existing) {
@@ -67,7 +67,7 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
       };
     }
 
-    const group = await insertGroup({
+    group = await insertGroup({
       name,
       description: description ?? null,
       city,
@@ -86,27 +86,6 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
       name: memberName.slice(0, 255),
       role: "owner",
     });
-
-    // Don't block the form response on Resend — a slow/hung email looked like a hang.
-    after(async () => {
-      try {
-        await sendNewGroupApprovalEmail({
-          id: group.id,
-          name: group.name,
-          description: group.description,
-          city: group.city,
-          ownerId: group.ownerId,
-        });
-      } catch (err) {
-        console.error("[createGroup] Failed to send approval email:", err);
-      }
-    });
-
-    revalidatePath("/groups");
-    revalidatePath("/groups/search");
-    revalidatePath("/dashboard");
-
-    return { success: true, groupId: group.id };
   } catch (err) {
     console.error("[createGroup] Failed to create group:", err);
     return {
@@ -114,6 +93,26 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
       error: "Something went wrong creating your group. Please try again.",
     };
   }
+
+  // Best-effort: never fail create if Resend is slow/down. sendEmail has its own timeout.
+  // (Avoid next/server `after()` — Amplify SSR does not provide waitUntil.)
+  try {
+    await sendNewGroupApprovalEmail({
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      city: group.city,
+      ownerId: group.ownerId,
+    });
+  } catch (err) {
+    console.error("[createGroup] Failed to send approval email:", err);
+  }
+
+  revalidatePath("/groups");
+  revalidatePath("/groups/search");
+  revalidatePath("/dashboard");
+
+  return { success: true, groupId: group.id };
 }
 
 const approveGroupSchema = z.object({
