@@ -245,7 +245,7 @@ export function ManageGroupDialog({
             )}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="group-profile-picture">Profile picture URL (optional)</Label>
+            <Label htmlFor="group-profile-picture">Group picture URL (optional)</Label>
             <Input
               id="group-profile-picture"
               value={profilePicture}
@@ -256,7 +256,7 @@ export function ManageGroupDialog({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="group-profile-picture-file">
-              Upload profile picture (optional)
+              Upload group picture (optional)
             </Label>
             <Input
               id="group-profile-picture-file"
