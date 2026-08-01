@@ -8,6 +8,7 @@ import {
   getGroupMembers,
   getApprovedGroupMembersWithProfiles,
   getGroupMemberPhotos,
+  getObligatoryQuestionsByGroupId,
   isUserGroupMember,
   isUserBannedFromGroup,
 } from "@/db/queries/groups";
@@ -55,6 +56,7 @@ export default async function GroupPage({
     approvedMembers,
     isBanned,
     memberPhotos,
+    obligatoryQuestions,
   ] = await Promise.all([
     getEventsByGroupId(groupId),
     getGroupMemberCount(groupId),
@@ -67,6 +69,7 @@ export default async function GroupPage({
     getApprovedGroupMembersWithProfiles(groupId),
     userId ? isUserBannedFromGroup(groupId, userId) : Promise.resolve(false),
     getGroupMemberPhotos(groupId),
+    getObligatoryQuestionsByGroupId(groupId),
   ]);
 
   let ownerName: string = "Unknown";
@@ -147,6 +150,7 @@ export default async function GroupPage({
                   groupId={groupId}
                   initialName={group.name}
                   initialKeywords={group.keywords}
+                  initialObligatoryQuestions={obligatoryQuestions.map((q) => q.question)}
                   initialProfilePicture={group.profilePicture}
                 />
                 <ViewGroupMembersDialog members={approvedMembers} />

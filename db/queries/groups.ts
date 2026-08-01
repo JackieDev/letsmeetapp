@@ -207,6 +207,28 @@ export async function insertObligatoryQuestions(
   );
 }
 
+/** Replace all obligatory questions for a group (up to 5). */
+export async function replaceObligatoryQuestions(
+  groupId: number,
+  questions: string[]
+) {
+  const trimmed = questions.map((q) => q.trim()).filter(Boolean).slice(0, 5);
+
+  await db
+    .delete(obligatoryQuestionsTable)
+    .where(eq(obligatoryQuestionsTable.groupId, groupId));
+
+  if (trimmed.length === 0) return;
+
+  await db.insert(obligatoryQuestionsTable).values(
+    trimmed.map((question, index) => ({
+      groupId,
+      question,
+      sortOrder: index,
+    }))
+  );
+}
+
 /** Add a member to a group (e.g. owner after creating the group). */
 export async function addGroupMember(data: {
   groupId: number;

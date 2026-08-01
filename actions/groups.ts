@@ -17,6 +17,7 @@ import {
   getGroupMemberByUserId,
   insertGroup,
   insertObligatoryQuestions,
+  replaceObligatoryQuestions,
   isUserGroupMember,
   approveGroupMemberByUserId,
   setGroupMemberApprovalRequirement as setGroupMemberApprovalRequirementDb,
@@ -660,6 +661,10 @@ const updateOwnedGroupDetailsSchema = z.object({
   groupId: z.number().int().positive(),
   name: z.string().trim().min(1, "Group name is required.").max(255),
   keywords: z.string().max(1000).optional(),
+  obligatoryQuestions: z
+    .array(z.string().trim().min(1, "Question cannot be empty").max(500))
+    .max(5, "You can add at most 5 questions.")
+    .optional(),
   profilePicture: z
     .string()
     .max(5_000_000)
@@ -695,6 +700,7 @@ export async function updateOwnedGroupDetails(
     const message =
       fields.name?.[0] ??
       fields.keywords?.[0] ??
+      fields.obligatoryQuestions?.[0] ??
       fields.profilePicture?.[0] ??
       "Invalid input.";
     return { success: false, error: message };
@@ -730,6 +736,13 @@ export async function updateOwnedGroupDetails(
       ? parsed.data.profilePicture
       : null,
   });
+
+  if (parsed.data.obligatoryQuestions !== undefined) {
+    await replaceObligatoryQuestions(
+      parsed.data.groupId,
+      parsed.data.obligatoryQuestions
+    );
+  }
 
   revalidatePath(`/group/${parsed.data.groupId}`);
   revalidatePath("/groups");

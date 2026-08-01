@@ -16,10 +16,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const MAX_OBLIGATORY_QUESTIONS = 5;
+
 type ManageGroupDialogProps = {
   groupId: number;
   initialName: string;
   initialKeywords: string | null;
+  initialObligatoryQuestions: string[];
   initialProfilePicture: string | null;
 };
 
@@ -27,16 +30,46 @@ export function ManageGroupDialog({
   groupId,
   initialName,
   initialKeywords,
+  initialObligatoryQuestions,
   initialProfilePicture,
 }: ManageGroupDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
   const [keywords, setKeywords] = useState(initialKeywords ?? "");
+  const [obligatoryQuestions, setObligatoryQuestions] = useState(
+    initialObligatoryQuestions
+  );
   const [profilePicture, setProfilePicture] = useState(initialProfilePicture ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (nextOpen) {
+      setName(initialName);
+      setKeywords(initialKeywords ?? "");
+      setObligatoryQuestions(initialObligatoryQuestions);
+      setProfilePicture(initialProfilePicture ?? "");
+      setError(null);
+    }
+  }
+
+  function addQuestion() {
+    if (obligatoryQuestions.length >= MAX_OBLIGATORY_QUESTIONS) return;
+    setObligatoryQuestions((prev) => [...prev, ""]);
+  }
+
+  function updateQuestion(index: number, value: string) {
+    setObligatoryQuestions((prev) =>
+      prev.map((question, i) => (i === index ? value : question))
+    );
+  }
+
+  function removeQuestion(index: number) {
+    setObligatoryQuestions((prev) => prev.filter((_, i) => i !== index));
+  }
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -75,10 +108,13 @@ export function ManageGroupDialog({
       }
     }
 
+    const questions = obligatoryQuestions.map((q) => q.trim()).filter(Boolean);
+
     const result = await updateOwnedGroupDetails({
       groupId,
       name,
       keywords,
+      obligatoryQuestions: questions,
       profilePicture: resolvedProfilePicture,
     });
 
@@ -117,13 +153,13 @@ export function ManageGroupDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="default">
           Manage group
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Group settings</DialogTitle>
           <DialogDescription>
@@ -154,6 +190,59 @@ export function ManageGroupDialog({
             <p className="text-xs text-muted-foreground">
               Comma-separated terms others can search for.
             </p>
+          </div>
+          <div className="grid gap-2">
+            <Label>Obligatory join questions (optional)</Label>
+            <p className="text-xs text-muted-foreground">
+              Ask up to {MAX_OBLIGATORY_QUESTIONS} questions that future members
+              must answer when joining.
+            </p>
+            {obligatoryQuestions.length > 0 ? (
+              <div className="grid gap-3">
+                {obligatoryQuestions.map((question, index) => (
+                  <div key={index} className="grid gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor={`manage-question-${index}`}>
+                        Question {index + 1}
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeQuestion(index)}
+                        disabled={isSaving || isClosing}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    <Input
+                      id={`manage-question-${index}`}
+                      value={question}
+                      onChange={(e) => updateQuestion(index, e.target.value)}
+                      placeholder="e.g. Why do you want to join?"
+                      maxLength={500}
+                      disabled={isSaving || isClosing}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {obligatoryQuestions.length < MAX_OBLIGATORY_QUESTIONS ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addQuestion}
+                disabled={isSaving || isClosing}
+                className="w-fit"
+              >
+                Add question
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Maximum of {MAX_OBLIGATORY_QUESTIONS} questions reached.
+              </p>
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="group-profile-picture">Profile picture URL (optional)</Label>
