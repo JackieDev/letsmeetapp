@@ -86,6 +86,15 @@ export const groupMemberPhotosTable = pgTable("group_member_photos", {
   createdAt: timestamp().defaultNow().notNull(),
 });
 
+// Obligatory questions that must be answered when joining a group (max 5 per group).
+export const obligatoryQuestionsTable = pgTable("obligatory_questions", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  groupId: integer().notNull().references(() => groupsTable.id, { onDelete: "cascade" }),
+  question: text().notNull(),
+  sortOrder: integer().notNull().default(0),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+
 // Event attendees table (junction table for users and events)
 export const eventAttendeesTable = pgTable("event_attendees", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),

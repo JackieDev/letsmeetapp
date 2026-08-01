@@ -1,10 +1,11 @@
-import { and, eq, ilike, ne, or, inArray, sql } from "drizzle-orm";
+import { and, eq, ilike, ne, or, inArray, sql, asc } from "drizzle-orm";
 import { db } from "@/db";
 import {
   groupMemberPhotosTable,
   groupMembersTable,
   groupsTable,
   membersTable,
+  obligatoryQuestionsTable,
 } from "@/db/schema";
 
 /** Escape % and _ for safe use in ilike (treat as literal). */
@@ -16,6 +17,7 @@ export type GroupInsert = typeof groupsTable.$inferInsert;
 export type Group = typeof groupsTable.$inferSelect;
 export type GroupMember = typeof groupMembersTable.$inferSelect;
 export type GroupMemberPhoto = typeof groupMemberPhotosTable.$inferSelect;
+export type ObligatoryQuestion = typeof obligatoryQuestionsTable.$inferSelect;
 
 /** Get a single group by id. Returns null if not found. */
 export async function getGroup(id: number) {
@@ -177,6 +179,32 @@ export async function searchGroups(filters: { name?: string; city?: string }) {
 export async function insertGroup(data: GroupInsert) {
   const [group] = await db.insert(groupsTable).values(data).returning();
   return group!;
+}
+
+/** Get obligatory questions for a group, ordered by sortOrder. */
+export async function getObligatoryQuestionsByGroupId(groupId: number) {
+  return db
+    .select()
+    .from(obligatoryQuestionsTable)
+    .where(eq(obligatoryQuestionsTable.groupId, groupId))
+    .orderBy(asc(obligatoryQuestionsTable.sortOrder), asc(obligatoryQuestionsTable.id));
+}
+
+/** Insert obligatory questions for a group (up to 5). */
+export async function insertObligatoryQuestions(
+  groupId: number,
+  questions: string[]
+) {
+  const trimmed = questions.map((q) => q.trim()).filter(Boolean).slice(0, 5);
+  if (trimmed.length === 0) return;
+
+  await db.insert(obligatoryQuestionsTable).values(
+    trimmed.map((question, index) => ({
+      groupId,
+      question,
+      sortOrder: index,
+    }))
+  );
 }
 
 /** Add a member to a group (e.g. owner after creating the group). */

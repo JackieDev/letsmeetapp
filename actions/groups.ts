@@ -16,6 +16,7 @@ import {
   getGroupByNameAndCity,
   getGroupMemberByUserId,
   insertGroup,
+  insertObligatoryQuestions,
   isUserGroupMember,
   approveGroupMemberByUserId,
   setGroupMemberApprovalRequirement as setGroupMemberApprovalRequirementDb,
@@ -33,6 +34,10 @@ const createGroupSchema = z.object({
   description: z.string().max(2000).optional(),
   keywords: z.string().max(1000).optional(),
   city: z.string().min(1, "City is required").max(100),
+  obligatoryQuestions: z
+    .array(z.string().trim().min(1, "Question cannot be empty").max(500))
+    .max(5, "You can add at most 5 questions.")
+    .optional(),
 });
 
 export type CreateGroupInput = z.infer<typeof createGroupSchema>;
@@ -50,13 +55,20 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
   const parsed = createGroupSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.flatten().fieldErrors;
-    const message = [first.name?.[0], first.city?.[0], first.description?.[0], first.keywords?.[0]]
-      .filter(Boolean)
-      .join(" ") || "Invalid input.";
+    const message =
+      [
+        first.name?.[0],
+        first.city?.[0],
+        first.description?.[0],
+        first.keywords?.[0],
+        first.obligatoryQuestions?.[0],
+      ]
+        .filter(Boolean)
+        .join(" ") || "Invalid input.";
     return { success: false, error: message };
   }
 
-  const { name, description, keywords, city } = parsed.data;
+  const { name, description, keywords, city, obligatoryQuestions } = parsed.data;
 
   let group: Awaited<ReturnType<typeof insertGroup>>;
   try {
@@ -88,6 +100,9 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
       name: memberName.slice(0, 255),
       role: "owner",
     });
+    if (obligatoryQuestions?.length) {
+      await insertObligatoryQuestions(group.id, obligatoryQuestions);
+    }
   } catch (err) {
     console.error("[createGroup] Failed to create group:", err);
     return {
