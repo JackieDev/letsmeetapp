@@ -103,6 +103,7 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
       id: group.id,
       name: group.name,
       description: group.description,
+      keywords: group.keywords,
       city: group.city,
       ownerId: group.ownerId,
     });

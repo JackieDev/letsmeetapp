@@ -73,6 +73,7 @@ export type NewGroupDetails = {
   id: number;
   name: string;
   description: string | null;
+  keywords: string | null;
   city: string;
   ownerId: string;
 };
@@ -91,6 +92,7 @@ export async function sendNewGroupApprovalEmail(
         <h2>New group submitted for approval</h2>
         <p><strong>Name:</strong> ${escapeHtml(group.name)}</p>
         <p><strong>City:</strong> ${escapeHtml(group.city)}</p>
+        <p><strong>Keywords:</strong> ${group.keywords ? escapeHtml(group.keywords) : "(none)"}</p>
         <p><strong>Description:</strong></p>
         <p>${group.description ? escapeHtml(group.description) : "(none)"}</p>
         <p><strong>Group ID:</strong> ${group.id}</p>
