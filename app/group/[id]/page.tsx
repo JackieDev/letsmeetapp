@@ -146,6 +146,7 @@ export default async function GroupPage({
                 <ManageGroupDialog
                   groupId={groupId}
                   initialName={group.name}
+                  initialKeywords={group.keywords}
                   initialProfilePicture={group.profilePicture}
                 />
                 <ViewGroupMembersDialog members={approvedMembers} />

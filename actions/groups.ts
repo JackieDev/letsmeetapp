@@ -31,6 +31,7 @@ import {
 const createGroupSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   description: z.string().max(2000).optional(),
+  keywords: z.string().max(1000).optional(),
   city: z.string().min(1, "City is required").max(100),
 });
 
@@ -49,13 +50,13 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
   const parsed = createGroupSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.flatten().fieldErrors;
-    const message = [first.name?.[0], first.city?.[0], first.description?.[0]]
+    const message = [first.name?.[0], first.city?.[0], first.description?.[0], first.keywords?.[0]]
       .filter(Boolean)
       .join(" ") || "Invalid input.";
     return { success: false, error: message };
   }
 
-  const { name, description, city } = parsed.data;
+  const { name, description, keywords, city } = parsed.data;
 
   let group: Awaited<ReturnType<typeof insertGroup>>;
   try {
@@ -70,6 +71,7 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
     group = await insertGroup({
       name,
       description: description ?? null,
+      keywords: keywords?.trim() ? keywords.trim() : null,
       city,
       ownerId: userId,
     });
@@ -641,6 +643,7 @@ export async function leaveGroup(input: LeaveGroupInput): Promise<LeaveGroupResu
 const updateOwnedGroupDetailsSchema = z.object({
   groupId: z.number().int().positive(),
   name: z.string().trim().min(1, "Group name is required.").max(255),
+  keywords: z.string().max(1000).optional(),
   profilePicture: z
     .string()
     .max(5_000_000)
@@ -674,7 +677,10 @@ export async function updateOwnedGroupDetails(
   if (!parsed.success) {
     const fields = parsed.error.flatten().fieldErrors;
     const message =
-      fields.name?.[0] ?? fields.profilePicture?.[0] ?? "Invalid input.";
+      fields.name?.[0] ??
+      fields.keywords?.[0] ??
+      fields.profilePicture?.[0] ??
+      "Invalid input.";
     return { success: false, error: message };
   }
 
@@ -703,12 +709,14 @@ export async function updateOwnedGroupDetails(
 
   await updateGroup(parsed.data.groupId, {
     name: parsed.data.name,
+    keywords: parsed.data.keywords?.trim() ? parsed.data.keywords.trim() : null,
     profilePicture: parsed.data.profilePicture
       ? parsed.data.profilePicture
       : null,
   });
 
   revalidatePath(`/group/${parsed.data.groupId}`);
+  revalidatePath("/groups");
   revalidatePath("/groups/search");
   revalidatePath("/dashboard");
 

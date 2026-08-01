@@ -10,6 +10,8 @@ export const groupsTable = pgTable(
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     name: varchar({ length: 255 }).notNull(),
     description: text(),
+    // Comma/space-separated keywords used for group search matching.
+    keywords: text(),
     profilePicture: text(), // Supports URL/path or uploaded image data URL
     city: varchar({ length: 100 }).notNull(), // UK city/town
     ownerId: varchar({ length: 255 }).notNull(), // Clerk user ID

@@ -55,14 +55,14 @@ export default async function GroupsPage({
                 htmlFor="name"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Name
+                Name or Keywords
               </label>
               <input
                 id="name"
                 name="name"
                 type="text"
                 defaultValue={name}
-                placeholder="Group name"
+                placeholder="Group name or keyword"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
@@ -101,7 +101,7 @@ export default async function GroupsPage({
             <h2 className="text-lg font-medium">Search results</h2>
             {groups.length === 0 ? (
               <p className="text-muted-foreground mt-2 text-sm">
-                No groups match your search. Try different name or city.
+                No groups match your search. Try a different name, keyword, or city.
               </p>
             ) : (
               <ul className="mt-3 space-y-2">

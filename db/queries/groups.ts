@@ -147,12 +147,22 @@ export async function getGroupsUserIsMemberOf(userId: string) {
     .orderBy(groupsTable.name);
 }
 
-/** Search approved groups by name and/or city (partial, case-insensitive). */
+/**
+ * Search approved groups by name/keywords and/or city (partial, case-insensitive).
+ * The name filter matches if the query appears in the group name OR in keywords
+ * (so a single keyword search finds groups tagged with that keyword).
+ */
 export async function searchGroups(filters: { name?: string; city?: string }) {
   const { name, city } = filters;
   const conditions = [eq(groupsTable.isApproved, true)];
   if (name?.trim()) {
-    conditions.push(ilike(groupsTable.name, `%${escapeIlike(name.trim())}%`));
+    const pattern = `%${escapeIlike(name.trim())}%`;
+    conditions.push(
+      or(
+        ilike(groupsTable.name, pattern),
+        ilike(groupsTable.keywords, pattern)
+      )!
+    );
   }
   if (city?.trim()) {
     conditions.push(ilike(groupsTable.city, `%${escapeIlike(city.trim())}%`));

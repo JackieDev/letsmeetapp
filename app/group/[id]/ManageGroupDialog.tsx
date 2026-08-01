@@ -19,17 +19,20 @@ import { Label } from "@/components/ui/label";
 type ManageGroupDialogProps = {
   groupId: number;
   initialName: string;
+  initialKeywords: string | null;
   initialProfilePicture: string | null;
 };
 
 export function ManageGroupDialog({
   groupId,
   initialName,
+  initialKeywords,
   initialProfilePicture,
 }: ManageGroupDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
+  const [keywords, setKeywords] = useState(initialKeywords ?? "");
   const [profilePicture, setProfilePicture] = useState(initialProfilePicture ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -75,6 +78,7 @@ export function ManageGroupDialog({
     const result = await updateOwnedGroupDetails({
       groupId,
       name,
+      keywords,
       profilePicture: resolvedProfilePicture,
     });
 
@@ -137,6 +141,19 @@ export function ManageGroupDialog({
               required
               disabled={isSaving || isClosing}
             />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="group-keywords">Keywords (optional)</Label>
+            <Input
+              id="group-keywords"
+              value={keywords}
+              onChange={(e) => setKeywords(e.target.value)}
+              placeholder="e.g. hiking, outdoors, beginners"
+              disabled={isSaving || isClosing}
+            />
+            <p className="text-xs text-muted-foreground">
+              Comma-separated terms others can search for.
+            </p>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="group-profile-picture">Profile picture URL (optional)</Label>

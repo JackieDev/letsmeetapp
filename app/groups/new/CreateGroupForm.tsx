@@ -21,12 +21,14 @@ export function CreateGroupForm() {
     const form = e.currentTarget;
     const name = (form.elements.namedItem("name") as HTMLInputElement).value.trim();
     const description = (form.elements.namedItem("description") as HTMLInputElement).value.trim();
+    const keywords = (form.elements.namedItem("keywords") as HTMLInputElement).value.trim();
     const city = (form.elements.namedItem("city") as HTMLInputElement).value.trim();
 
     try {
       const result: CreateGroupResult = await createGroup({
         name,
         description: description || undefined,
+        keywords: keywords || undefined,
         city,
       });
 
@@ -82,6 +84,25 @@ export function CreateGroupForm() {
             className={inputClassName + " min-h-[80px] resize-y py-2"}
             disabled={isSubmitting}
           />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="keywords"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Keywords (optional)
+          </label>
+          <input
+            id="keywords"
+            name="keywords"
+            type="text"
+            placeholder="e.g. hiking, outdoors, beginners"
+            className={inputClassName}
+            disabled={isSubmitting}
+          />
+          <p className="text-xs text-muted-foreground">
+            Comma-separated terms others can search for.
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <label
