@@ -7,6 +7,12 @@ const tailwindcssRoot = path.join(projectRoot, "node_modules", "tailwindcss");
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    serverActions: {
+      // Headroom for ~4M-char base64 image data URLs sent through Server Actions.
+      bodySizeLimit: "5mb",
+    },
+  },
   async redirects() {
     return [
       {

@@ -17,7 +17,7 @@ const uploadGroupMemberPhotosSchema = z.object({
     .array(
       z
         .string()
-        .max(3_000_000)
+        .max(5_000_000)
         .refine((value) => dataUrlImagePattern.test(value), {
           message: "Each photo must be a valid uploaded image.",
         })
