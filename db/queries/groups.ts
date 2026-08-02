@@ -7,6 +7,31 @@ import {
   membersTable,
   obligatoryQuestionsTable,
 } from "@/db/schema";
+import {
+  MAX_LIST_IMAGE_DATA_URL_LENGTH,
+  MAX_STORED_IMAGE_DATA_URL_LENGTH,
+} from "@/lib/image-data-url";
+
+/** Omit multi-MB data URLs from list/search payloads (Amplify SSR size cap). */
+function listSafeGroupProfilePicture() {
+  return sql<string | null>`
+    CASE
+      WHEN ${groupsTable.profilePicture} IS NULL THEN NULL
+      WHEN char_length(${groupsTable.profilePicture}) > ${MAX_LIST_IMAGE_DATA_URL_LENGTH} THEN NULL
+      ELSE ${groupsTable.profilePicture}
+    END
+  `.as("profilePicture");
+}
+
+function listSafeMemberProfilePicture() {
+  return sql<string | null>`
+    CASE
+      WHEN ${membersTable.profilePicture} IS NULL THEN NULL
+      WHEN char_length(${membersTable.profilePicture}) > ${MAX_LIST_IMAGE_DATA_URL_LENGTH} THEN NULL
+      ELSE ${membersTable.profilePicture}
+    END
+  `.as("profilePicture");
+}
 
 /** Escape % and _ for safe use in ilike (treat as literal). */
 function escapeIlike(value: string): string {
@@ -121,6 +146,21 @@ export async function getGroupsByOwnerId(ownerId: string) {
     .where(eq(groupsTable.ownerId, ownerId));
 }
 
+const groupListColumns = {
+  id: groupsTable.id,
+  name: groupsTable.name,
+  description: groupsTable.description,
+  keywords: groupsTable.keywords,
+  profilePicture: listSafeGroupProfilePicture(),
+  city: groupsTable.city,
+  ownerId: groupsTable.ownerId,
+  isApproved: groupsTable.isApproved,
+  notifiedApproval: groupsTable.notifiedApproval,
+  requiresMemberApproval: groupsTable.requiresMemberApproval,
+  createdAt: groupsTable.createdAt,
+  updatedAt: groupsTable.updatedAt,
+};
+
 /** Get all (approved) groups the user is a member of: owner or in group_members. */
 export async function getGroupsUserIsMemberOf(userId: string) {
   const memberRows = await db
@@ -135,7 +175,7 @@ export async function getGroupsUserIsMemberOf(userId: string) {
     );
   const memberGroupIds = memberRows.map((r) => r.groupId);
   return db
-    .select()
+    .select(groupListColumns)
     .from(groupsTable)
     .where(
       and(
@@ -170,7 +210,7 @@ export async function searchGroups(filters: { name?: string; city?: string }) {
     conditions.push(ilike(groupsTable.city, `%${escapeIlike(city.trim())}%`));
   }
   return db
-    .select()
+    .select(groupListColumns)
     .from(groupsTable)
     .where(and(...conditions));
 }
@@ -358,7 +398,7 @@ export async function getApprovedGroupMembersWithProfiles(
     .select({
       userId: groupMembersTable.userId,
       name: groupMembersTable.name,
-      profilePicture: membersTable.profilePicture,
+      profilePicture: listSafeMemberProfilePicture(),
       role: groupMembersTable.role,
     })
     .from(groupMembersTable)
@@ -504,7 +544,9 @@ export async function getGroupMemberPhotos(
       and(
         eq(groupMemberPhotosTable.groupId, groupId),
         eq(groupMembersTable.isBanned, false),
-        eq(groupMembersTable.isMemberApproved, true)
+        eq(groupMembersTable.isMemberApproved, true),
+        // Skip legacy multi-MB uploads that would blow Amplify's SSR response cap.
+        sql`char_length(${groupMemberPhotosTable.imageData}) <= ${MAX_STORED_IMAGE_DATA_URL_LENGTH}`
       )
     )
     .orderBy(sql`${groupMemberPhotosTable.createdAt} desc`);

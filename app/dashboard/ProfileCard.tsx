@@ -6,6 +6,10 @@ import { Member } from "@/db/queries/members";
 import { updateCurrentMemberProfile } from "@/actions/members";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  MAX_IMAGE_UPLOAD_BYTES,
+  fileToCompressedDataUrl,
+} from "@/lib/image-data-url";
 
 type MemberForClient = Omit<Member, "billingPeriodEnd"> & {
   // Server components may return `Date` values; client props must be JSON-safe.
@@ -26,16 +30,15 @@ export function ProfileCard({ member }: Props) {
     setError(null);
     setImageUploadWarning(null);
     const name = formData.get("name")?.toString() ?? "";
-    const currentProfilePicture = formData.get("currentProfilePicture")?.toString() ?? "";
     const city = formData.get("city")?.toString() ?? "";
     const interests = formData.get("interests")?.toString() ?? "";
     const uploadedFile = formData.get("profilePictureFile");
 
-    let profilePicture = currentProfilePicture;
+    let profilePicture: string | undefined;
     let imageFailedMessage: string | null = null;
 
     if (uploadedFile instanceof File && uploadedFile.size > 0) {
-      if (uploadedFile.size > 2 * 1024 * 1024) {
+      if (uploadedFile.size > MAX_IMAGE_UPLOAD_BYTES) {
         imageFailedMessage =
           "Image upload failed: profile picture must be 2MB or smaller. Your other profile details were saved.";
       } else if (!uploadedFile.type.startsWith("image/")) {
@@ -43,19 +46,7 @@ export function ProfileCard({ member }: Props) {
           "Image upload failed: please upload an image file. Your other profile details were saved.";
       } else {
         try {
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () =>
-              resolve(typeof reader.result === "string" ? reader.result : "");
-            reader.onerror = () => reject(new Error("Failed to read uploaded image."));
-            reader.readAsDataURL(uploadedFile);
-          });
-          if (!dataUrl) {
-            imageFailedMessage =
-              "Image upload failed. Your other profile details were saved.";
-          } else {
-            profilePicture = dataUrl;
-          }
+          profilePicture = await fileToCompressedDataUrl(uploadedFile);
         } catch {
           imageFailedMessage =
             "Image upload failed. Your other profile details were saved.";
@@ -67,9 +58,9 @@ export function ProfileCard({ member }: Props) {
       try {
         await updateCurrentMemberProfile({
           name,
-          profilePicture,
           city,
           interests,
+          ...(profilePicture !== undefined ? { profilePicture } : {}),
         });
         setIsEditing(false);
         if (imageFailedMessage) {
@@ -173,14 +164,14 @@ export function ProfileCard({ member }: Props) {
             />
           </div>
 
-          <input type="hidden" name="currentProfilePicture" value={member?.profilePicture ?? ""} />
-
           <div className="space-y-1.5">
             <label className="text-sm font-medium" htmlFor="profilePictureFile">
               Upload profile picture
             </label>
             <Input id="profilePictureFile" name="profilePictureFile" type="file" accept="image/*" />
-            <p className="text-muted-foreground text-xs">PNG, JPG, WEBP, or GIF up to 2MB.</p>
+            <p className="text-muted-foreground text-xs">
+              PNG, JPG, WEBP, or GIF up to 2MB. Images are compressed before saving.
+            </p>
           </div>
 
           <div className="space-y-1.5">

@@ -15,14 +15,14 @@ export default async function GroupsPage({
   const params = await searchParams;
   const name = typeof params.name === "string" ? params.name : undefined;
   const city = typeof params.city === "string" ? params.city : undefined;
+  const hasFilters = Boolean(name?.trim() || city?.trim());
 
   const [groups, userMemberGroups] = await Promise.all([
-    searchGroups({ name, city }),
+    hasFilters ? searchGroups({ name, city }) : Promise.resolve([]),
     userId ? getGroupsUserIsMemberOf(userId) : Promise.resolve([]),
   ]);
 
   const userMemberGroupIds = new Set(userMemberGroups.map((group) => group.id));
-  const hasFilters = Boolean(name?.trim() || city?.trim());
   const sortedMemberGroups = [...userMemberGroups].sort((a, b) => {
     const aIsOwner = a.ownerId === userId;
     const bIsOwner = b.ownerId === userId;

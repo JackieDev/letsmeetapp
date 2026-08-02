@@ -9,8 +9,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     serverActions: {
-      // Headroom for ~4M-char base64 image data URLs sent through Server Actions.
-      bodySizeLimit: "5mb",
+      // Keep under Amplify Hosting request limits; images are compressed client-side.
+      bodySizeLimit: "1mb",
     },
   },
   async redirects() {

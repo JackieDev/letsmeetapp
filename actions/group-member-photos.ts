@@ -8,6 +8,7 @@ import {
   getApprovedGroup,
   isUserGroupMember,
 } from "@/db/queries/groups";
+import { MAX_STORED_IMAGE_DATA_URL_LENGTH } from "@/lib/image-data-url";
 
 const dataUrlImagePattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/;
 
@@ -17,7 +18,7 @@ const uploadGroupMemberPhotosSchema = z.object({
     .array(
       z
         .string()
-        .max(5_000_000)
+        .max(MAX_STORED_IMAGE_DATA_URL_LENGTH)
         .refine((value) => dataUrlImagePattern.test(value), {
           message: "Each photo must be a valid uploaded image.",
         })

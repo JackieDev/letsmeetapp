@@ -5,19 +5,14 @@ import { useRouter } from "next/navigation";
 import { uploadGroupMemberPhotos } from "@/actions/group-member-photos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  MAX_IMAGE_UPLOAD_BYTES,
+  fileToCompressedDataUrl,
+} from "@/lib/image-data-url";
 
 type MemberPhotoUploadCardProps = {
   groupId: number;
 };
-
-async function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
-    reader.onerror = () => reject(new Error("Failed to read image file."));
-    reader.readAsDataURL(file);
-  });
-}
 
 export function MemberPhotoUploadCard({ groupId }: MemberPhotoUploadCardProps) {
   const router = useRouter();
@@ -44,32 +39,39 @@ export function MemberPhotoUploadCard({ groupId }: MemberPhotoUploadCardProps) {
         setError("Only image files can be uploaded.");
         return;
       }
-      if (file.size > 2 * 1024 * 1024) {
+      if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
         setError("Each photo must be 2MB or smaller.");
         return;
       }
     }
 
     setIsSubmitting(true);
-    const photos = await Promise.all(files.map((file) => fileToDataUrl(file)));
-    const result = await uploadGroupMemberPhotos({ groupId, photos });
-    setIsSubmitting(false);
+    try {
+      const photos = await Promise.all(
+        files.map((file) => fileToCompressedDataUrl(file))
+      );
+      const result = await uploadGroupMemberPhotos({ groupId, photos });
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
 
-    if (!result.success) {
-      setError(result.error);
-      return;
+      form.reset();
+      setSuccess("Photos uploaded.");
+      router.refresh();
+    } catch {
+      setError("Could not process one or more images. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    form.reset();
-    setSuccess("Photos uploaded.");
-    router.refresh();
   }
 
   return (
     <div className="rounded-lg border border-border/40 bg-card p-6 text-card-foreground shadow-sm">
       <h2 className="text-lg font-medium">Group photos</h2>
       <p className="text-muted-foreground mt-1 text-sm">
-        Upload one or more photos to share with members. Max 2MB per image.
+        Upload one or more photos to share with members. Max 2MB per image;
+        photos are compressed before saving.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">

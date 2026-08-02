@@ -151,7 +151,14 @@ export default async function GroupPage({
                   initialName={group.name}
                   initialKeywords={group.keywords}
                   initialObligatoryQuestions={obligatoryQuestions.map((q) => q.question)}
-                  initialProfilePicture={group.profilePicture}
+                  initialProfilePictureUrl={
+                    group.profilePicture?.startsWith("data:")
+                      ? null
+                      : group.profilePicture
+                  }
+                  hasUploadedProfilePicture={Boolean(
+                    group.profilePicture?.startsWith("data:")
+                  )}
                 />
                 <ViewGroupMembersDialog members={approvedMembers} />
                 <ManageMembersDialog

@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  MAX_IMAGE_UPLOAD_BYTES,
+  fileToCompressedDataUrl,
+} from "@/lib/image-data-url";
 
 const MAX_OBLIGATORY_QUESTIONS = 5;
 
@@ -23,7 +27,9 @@ type ManageGroupDialogProps = {
   initialName: string;
   initialKeywords: string | null;
   initialObligatoryQuestions: string[];
-  initialProfilePicture: string | null;
+  /** Remote URL only — uploaded data URLs must not be passed to the client. */
+  initialProfilePictureUrl: string | null;
+  hasUploadedProfilePicture: boolean;
 };
 
 export function ManageGroupDialog({
@@ -31,7 +37,8 @@ export function ManageGroupDialog({
   initialName,
   initialKeywords,
   initialObligatoryQuestions,
-  initialProfilePicture,
+  initialProfilePictureUrl,
+  hasUploadedProfilePicture,
 }: ManageGroupDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -40,7 +47,9 @@ export function ManageGroupDialog({
   const [obligatoryQuestions, setObligatoryQuestions] = useState(
     initialObligatoryQuestions
   );
-  const [profilePicture, setProfilePicture] = useState(initialProfilePicture ?? "");
+  const [profilePictureUrl, setProfilePictureUrl] = useState(
+    initialProfilePictureUrl ?? ""
+  );
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -51,7 +60,7 @@ export function ManageGroupDialog({
       setName(initialName);
       setKeywords(initialKeywords ?? "");
       setObligatoryQuestions(initialObligatoryQuestions);
-      setProfilePicture(initialProfilePicture ?? "");
+      setProfilePictureUrl(initialProfilePictureUrl ?? "");
       setError(null);
     }
   }
@@ -80,31 +89,31 @@ export function ManageGroupDialog({
     const uploadedFile = (form.elements.namedItem("groupProfilePictureFile") as HTMLInputElement)
       ?.files?.[0];
 
-    let resolvedProfilePicture = profilePicture.trim() || "";
+    let profilePicture: string | undefined;
     if (uploadedFile) {
       if (!uploadedFile.type.startsWith("image/")) {
         setIsSaving(false);
         setError("Please upload an image file.");
         return;
       }
-      if (uploadedFile.size > 2 * 1024 * 1024) {
+      if (uploadedFile.size > MAX_IMAGE_UPLOAD_BYTES) {
         setIsSaving(false);
         setError("Uploaded image must be 2MB or smaller.");
         return;
       }
 
       try {
-        resolvedProfilePicture = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () =>
-            resolve(typeof reader.result === "string" ? reader.result : "");
-          reader.onerror = () => reject(new Error("Failed to read uploaded image."));
-          reader.readAsDataURL(uploadedFile);
-        });
+        profilePicture = await fileToCompressedDataUrl(uploadedFile);
       } catch {
         setIsSaving(false);
         setError("Could not process uploaded image. Please try again.");
         return;
+      }
+    } else {
+      const trimmedUrl = profilePictureUrl.trim();
+      const originalUrl = (initialProfilePictureUrl ?? "").trim();
+      if (trimmedUrl !== originalUrl) {
+        profilePicture = trimmedUrl;
       }
     }
 
@@ -115,7 +124,7 @@ export function ManageGroupDialog({
       name,
       keywords,
       obligatoryQuestions: questions,
-      profilePicture: resolvedProfilePicture,
+      ...(profilePicture !== undefined ? { profilePicture } : {}),
     });
 
     setIsSaving(false);
@@ -248,11 +257,17 @@ export function ManageGroupDialog({
             <Label htmlFor="group-profile-picture">Group picture URL (optional)</Label>
             <Input
               id="group-profile-picture"
-              value={profilePicture}
-              onChange={(e) => setProfilePicture(e.target.value)}
+              value={profilePictureUrl}
+              onChange={(e) => setProfilePictureUrl(e.target.value)}
               placeholder="https://example.com/group-image.jpg"
               disabled={isSaving || isClosing}
             />
+            {hasUploadedProfilePicture ? (
+              <p className="text-xs text-muted-foreground">
+                This group already has an uploaded picture. Leave the URL blank to keep it,
+                or upload a new image to replace it.
+              </p>
+            ) : null}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="group-profile-picture-file">
@@ -267,6 +282,7 @@ export function ManageGroupDialog({
             />
             <p className="text-xs text-muted-foreground">
               If both URL and upload are provided, the uploaded image is used.
+              Images are compressed before upload (max 2MB source file).
             </p>
           </div>
 

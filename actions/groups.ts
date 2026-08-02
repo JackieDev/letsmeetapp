@@ -29,6 +29,7 @@ import {
   isUserBannedFromGroup,
   markGroupApprovalNotified,
 } from "@/db/queries/groups";
+import { MAX_STORED_IMAGE_DATA_URL_LENGTH } from "@/lib/image-data-url";
 
 const createGroupSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
@@ -667,7 +668,7 @@ const updateOwnedGroupDetailsSchema = z.object({
     .optional(),
   profilePicture: z
     .string()
-    .max(5_000_000)
+    .max(MAX_STORED_IMAGE_DATA_URL_LENGTH)
     .refine(
       (value) =>
         value.length === 0 ||
@@ -732,9 +733,13 @@ export async function updateOwnedGroupDetails(
   await updateGroup(parsed.data.groupId, {
     name: parsed.data.name,
     keywords: parsed.data.keywords?.trim() ? parsed.data.keywords.trim() : null,
-    profilePicture: parsed.data.profilePicture
-      ? parsed.data.profilePicture
-      : null,
+    ...(parsed.data.profilePicture !== undefined
+      ? {
+          profilePicture: parsed.data.profilePicture.trim()
+            ? parsed.data.profilePicture.trim()
+            : null,
+        }
+      : {}),
   });
 
   if (parsed.data.obligatoryQuestions !== undefined) {

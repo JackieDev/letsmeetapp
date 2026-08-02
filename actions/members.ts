@@ -4,11 +4,12 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { updateMemberProfile } from "@/db/queries/members";
+import { MAX_STORED_IMAGE_DATA_URL_LENGTH } from "@/lib/image-data-url";
 
 const dataUrlImagePattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/;
 const profilePictureSchema = z
   .string()
-  .max(5_000_000)
+  .max(MAX_STORED_IMAGE_DATA_URL_LENGTH)
   .refine(
     (value) => value.length === 0 || z.string().url().safeParse(value).success || dataUrlImagePattern.test(value),
     { message: "Profile picture must be a valid URL or uploaded image." }
@@ -31,14 +32,23 @@ export async function updateCurrentMemberProfile(input: UpdateMemberProfileInput
 
   const validated = updateMemberProfileSchema.parse(input);
 
-  const normalized = {
+  const normalized: {
+    name?: string | null;
+    profilePicture?: string | null;
+    city?: string | null;
+    interests?: string | null;
+  } = {
     name: validated.name ? validated.name : null,
-    profilePicture: validated.profilePicture
-      ? validated.profilePicture
-      : null,
     city: validated.city ? validated.city : null,
     interests: validated.interests ? validated.interests : null,
   };
+
+  // Only update the picture when the client explicitly sends one (new upload).
+  if (validated.profilePicture !== undefined) {
+    normalized.profilePicture = validated.profilePicture
+      ? validated.profilePicture
+      : null;
+  }
 
   await updateMemberProfile(userId, normalized);
   revalidatePath("/dashboard");
