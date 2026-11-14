@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { redirectIfAccountClosed } from "@/lib/member-access";
 import Link from "next/link";
 import { CreateGroupForm } from "./new/CreateGroupForm";
 import { getGroupsUserIsMemberOf, searchGroups } from "@/db/queries/groups";
@@ -11,6 +12,9 @@ export default async function GroupsPage({
   searchParams: Promise<{ name?: string; city?: string }>;
 }) {
   const { userId } = await auth();
+  if (userId) {
+    await redirectIfAccountClosed(userId);
+  }
 
   const params = await searchParams;
   const name = typeof params.name === "string" ? params.name : undefined;

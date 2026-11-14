@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getAccountClosedMessage } from "@/lib/member-access";
 import {
   getApprovedGroup,
   isUserGroupMember,
@@ -45,6 +46,11 @@ export async function createEvent(
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in to create an event." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = createEventSchema.safeParse(input);
@@ -132,6 +138,11 @@ export async function updateEvent(
     return { success: false, error: "You must be signed in to edit an event." };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const parsed = updateEventSchema.safeParse(input);
   if (!parsed.success) {
     const flattened = parsed.error.flatten().fieldErrors;
@@ -206,6 +217,11 @@ export async function attendEvent(
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in to attend an event." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = attendEventSchema.safeParse(input);
@@ -293,6 +309,11 @@ export async function cancelEventAttendance(
     };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const parsed = cancelEventAttendanceSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: "Invalid event." };
@@ -350,6 +371,11 @@ export async function deleteEvent(
     return { success: false, error: "You must be signed in to delete an event." };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const parsed = deleteEventSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: "Invalid event." };
@@ -387,6 +413,11 @@ export async function addEventNote(
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in to add a note." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = addEventNoteSchema.safeParse(input);

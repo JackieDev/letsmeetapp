@@ -55,6 +55,12 @@ export function LetsMeetMenu() {
         >
           Search Groups
         </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => navigateWithHttpRequest("/billing")}
+          className="cursor-pointer"
+        >
+          Billing
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

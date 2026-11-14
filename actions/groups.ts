@@ -3,6 +3,7 @@
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getAccountClosedMessage } from "@/lib/member-access";
 import {
   sendGroupMemberJoinRequestEmail,
   sendNewGroupApprovalEmail,
@@ -52,6 +53,11 @@ export async function createGroup(input: CreateGroupInput): Promise<CreateGroupR
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in to create a group." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = createGroupSchema.safeParse(input);
@@ -151,6 +157,11 @@ export async function approveGroup(input: ApproveGroupInput): Promise<ApproveGro
     return { success: false, error: "You must be signed in." };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const user = await currentUser();
   const approverEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
   const isEmailApprover = approverEmail === "jacqueline@letsmeet.uk";
@@ -219,6 +230,11 @@ export async function deletePendingGroup(
     return { success: false, error: "You must be signed in." };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const user = await currentUser();
   const approverEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
   const isEmailApprover = approverEmail === "jacqueline@letsmeet.uk";
@@ -268,6 +284,11 @@ export async function removeGroupMember(
     return { success: false, error: "You must be signed in." };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const parsed = modifyMemberSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: "Invalid input." };
@@ -310,6 +331,11 @@ export async function changeGroupMemberRole(
     return { success: false, error: "You must be signed in." };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const parsed = changeRoleSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: "Invalid input." };
@@ -342,6 +368,11 @@ export async function toggleBanGroupMember(
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = modifyMemberSchema.safeParse(input);
@@ -386,6 +417,11 @@ export async function updateMyGroupMemberName(
     return { success: false, error: "You must be signed in." };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const parsed = updateMyNameSchema.safeParse(input);
   if (!parsed.success) {
     const msg = parsed.error.flatten().fieldErrors.name?.[0] ?? "Invalid input.";
@@ -421,6 +457,11 @@ export async function joinGroup(input: JoinGroupInput): Promise<JoinGroupResult>
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in to join a group." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = joinGroupSchema.safeParse(input);
@@ -539,6 +580,11 @@ export async function approveGroupMember(
     return { success: false, error: "You must be signed in." };
   }
 
+  const closedAccount = await getAccountClosedMessage(currentOwnerId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const parsed = approveGroupMemberSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: "Invalid input." };
@@ -588,6 +634,11 @@ export async function setGroupMemberApprovalRequirement(
     return { success: false, error: "You must be signed in." };
   }
 
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
+  }
+
   const parsed = setGroupMemberApprovalRequirementSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: "Invalid input." };
@@ -627,6 +678,11 @@ export async function leaveGroup(input: LeaveGroupInput): Promise<LeaveGroupResu
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in to leave a group." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = leaveGroupSchema.safeParse(input);
@@ -693,6 +749,11 @@ export async function updateOwnedGroupDetails(
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = updateOwnedGroupDetailsSchema.safeParse(input);
@@ -773,6 +834,11 @@ export async function closeOwnedGroup(
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = closeOwnedGroupSchema.safeParse(input);

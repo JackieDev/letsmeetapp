@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { ensureMemberForUser, getMemberByUserId, type Member } from "@/db/queries/members";
 import { getClerkUserDetails } from "@/lib/clerk-user";
 import {
@@ -11,6 +12,8 @@ export type MemberAccessStatus = {
   hasCompletedBillingSetup: boolean;
   isPaidSubscriber: boolean;
   isInFreeTrial: boolean;
+  isPaused: boolean;
+  isCanceled: boolean;
   signedUpAt: Date | null;
   trialEndsAt: Date | null;
 };
@@ -39,6 +42,8 @@ export async function getMemberAccessStatus(userId: string): Promise<MemberAcces
       hasCompletedBillingSetup: false,
       isPaidSubscriber: false,
       isInFreeTrial: false,
+      isPaused: false,
+      isCanceled: false,
       signedUpAt: null,
       trialEndsAt: null,
     };
@@ -48,10 +53,18 @@ export async function getMemberAccessStatus(userId: string): Promise<MemberAcces
   const trialEndsAt = getTrialEndsAt(signedUpAt);
   const isInFreeTrial = isWithinFreeTrial(signedUpAt);
   const isPaidSubscriber = member.isPaidSubscriber;
+  const isPaused = member.accountPausedAt != null;
+  const isCanceled = member.accountCanceledAt != null;
 
   // Access is based on persisted member state only. Clerk billing is synced on
   // /billing and /dashboard before redirecting, so we avoid billing ↔ dashboard loops.
-  const hasAccess = isInFreeTrial || isPaidSubscriber;
+  // A pause blocks access immediately. A cancel ends the free trial, but a paid
+  // period that has not finished still grants access.
+  const hasAccess = isPaused
+    ? false
+    : isCanceled
+      ? isPaidSubscriber
+      : isInFreeTrial || isPaidSubscriber;
 
   return {
     member,
@@ -59,7 +72,27 @@ export async function getMemberAccessStatus(userId: string): Promise<MemberAcces
     hasCompletedBillingSetup: true,
     isPaidSubscriber,
     isInFreeTrial,
+    isPaused,
+    isCanceled,
     signedUpAt,
     trialEndsAt,
   };
+}
+
+/** Why a member cannot use the app, or null when their account is open. */
+export async function getAccountClosedMessage(userId: string): Promise<string | null> {
+  const access = await getMemberAccessStatus(userId);
+  if (access.isPaused) {
+    return "Your account is paused. Resume it on the billing page.";
+  }
+  if (access.isCanceled && !access.hasAccess) {
+    return "Your account is canceled. Subscribe again on the billing page to continue.";
+  }
+  return null;
+}
+
+/** Send a paused or fully canceled member back to billing. */
+export async function redirectIfAccountClosed(userId: string) {
+  const message = await getAccountClosedMessage(userId);
+  if (message) redirect("/billing");
 }

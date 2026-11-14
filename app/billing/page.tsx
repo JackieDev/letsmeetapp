@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { tryActivateMemberFromClerkSubscription } from "@/lib/activate-member-from-clerk";
 import { formatTrialEndDate } from "@/lib/free-trial";
 import { getMemberAccessStatus } from "@/lib/member-access";
+import { AccountActions } from "./AccountActions";
 import { BillingCheckout } from "./BillingCheckout";
 import { BillingSubscriptionInfo } from "./BillingSubscriptionInfo";
 import { BillingTrialStatus } from "./BillingTrialStatus";
@@ -13,6 +14,8 @@ type BillingPageContentProps = {
   isNewUser: boolean;
   isPaidSubscriber: boolean;
   isInFreeTrial: boolean;
+  isPaused: boolean;
+  isCanceled: boolean;
   trialEndsAt: string | null;
   billingStatus: string | null;
   billingPeriodEnd: string | null;
@@ -23,6 +26,8 @@ function BillingPageContent({
   isNewUser,
   isPaidSubscriber,
   isInFreeTrial,
+  isPaused,
+  isCanceled,
   trialEndsAt,
   billingStatus,
   billingPeriodEnd,
@@ -32,6 +37,10 @@ function BillingPageContent({
   let description: string;
   if (!isSignedIn) {
     description = "View available subscription plans. Sign Up/Sign In to subscribe.";
+  } else if (isPaused) {
+    description = "Your account is paused. Resume it below, or delete it if you are done with LetsMeet.";
+  } else if (isCanceled && !isPaidSubscriber) {
+    description = "Your account is canceled. Subscribe to start again, or delete it below.";
   } else if (isPaidSubscriber) {
     description = "View your subscription details and manage billing.";
   } else if (isNewUser) {
@@ -59,8 +68,18 @@ function BillingPageContent({
         />
       ) : null}
 
-      {isInFreeTrial && !isPaidSubscriber && trialEndsAt ? (
+      {isInFreeTrial && !isPaidSubscriber && !isCanceled && trialEndsAt ? (
         <BillingTrialStatus trialEndsAt={trialEndsAt} />
+      ) : null}
+
+      {isSignedIn ? (
+        <AccountActions
+          isPaused={isPaused}
+          isCanceled={isCanceled}
+          isPaidSubscriber={isPaidSubscriber}
+          isInFreeTrial={isInFreeTrial && !isCanceled}
+          billingPeriodEnd={billingPeriodEnd}
+        />
       ) : null}
 
       <BillingCheckout showPlanPicker={showPlanPicker} />
@@ -75,6 +94,8 @@ export default async function BillingPage() {
   let isNewUser = false;
   let isPaidSubscriber = false;
   let isInFreeTrial = false;
+  let isPaused = false;
+  let isCanceled = false;
   let trialEndsAt: string | null = null;
   let billingStatus: string | null = null;
   let billingPeriodEnd: string | null = null;
@@ -82,7 +103,7 @@ export default async function BillingPage() {
   if (userId) {
     let access = await getMemberAccessStatus(userId);
 
-    if (!access.hasAccess || access.isPaidSubscriber) {
+    if (!access.isPaused && !access.isCanceled && (!access.hasAccess || access.isPaidSubscriber)) {
       const synced = await tryActivateMemberFromClerkSubscription(userId);
       if (synced) {
         access = await getMemberAccessStatus(userId);
@@ -92,6 +113,8 @@ export default async function BillingPage() {
     isNewUser = !access.hasCompletedBillingSetup;
     isPaidSubscriber = access.isPaidSubscriber;
     isInFreeTrial = access.isInFreeTrial;
+    isPaused = access.isPaused;
+    isCanceled = access.isCanceled;
     trialEndsAt = access.trialEndsAt?.toISOString() ?? null;
     billingStatus = access.member?.billingStatus ?? null;
     billingPeriodEnd = access.member?.billingPeriodEnd
@@ -105,6 +128,8 @@ export default async function BillingPage() {
       isNewUser={isNewUser}
       isPaidSubscriber={isPaidSubscriber}
       isInFreeTrial={isInFreeTrial}
+      isPaused={isPaused}
+      isCanceled={isCanceled}
       trialEndsAt={trialEndsAt}
       billingStatus={billingStatus}
       billingPeriodEnd={billingPeriodEnd}

@@ -11,9 +11,11 @@ import {
   fileToCompressedDataUrl,
 } from "@/lib/image-data-url";
 
-type MemberForClient = Omit<Member, "billingPeriodEnd"> & {
+type MemberForClient = Omit<Member, "billingPeriodEnd" | "accountPausedAt" | "accountCanceledAt"> & {
   // Server components may return `Date` values; client props must be JSON-safe.
   billingPeriodEnd: string | null;
+  accountPausedAt: string | null;
+  accountCanceledAt: string | null;
 };
 
 type Props = {

@@ -90,7 +90,9 @@ export function BillingSubscriptionInfo({ billingStatus, billingPeriodEnd }: Pro
         </div>
         {periodEnd ? (
           <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-            <dt className="text-muted-foreground">Renews on</dt>
+            <dt className="text-muted-foreground">
+              {status.toLowerCase() === "canceled" ? "Access until" : "Renews on"}
+            </dt>
             <dd className="font-medium">{periodEnd}</dd>
           </div>
         ) : null}

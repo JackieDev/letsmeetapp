@@ -1,3 +1,4 @@
+import { clearMemberAccountClosure } from "@/db/queries/account";
 import { activateMemberSubscription, recordMemberBillingSetup } from "@/db/queries/billing";
 import { getUserHasActivePaidSubscriptionWithRetry } from "@/lib/clerk-billing";
 import { provisionMemberFromClerk } from "@/lib/provision-member";
@@ -8,7 +9,8 @@ export type SyncMemberBillingResult =
 
 export async function syncMemberBillingForUser(
   userId: string,
-  planId?: string
+  planId?: string,
+  options?: { restoreAccount?: boolean }
 ): Promise<SyncMemberBillingResult> {
   try {
     await provisionMemberFromClerk(userId);
@@ -24,6 +26,9 @@ export async function syncMemberBillingForUser(
         billingStatus: subscription.status,
         billingPeriodEnd: paidItem.periodEnd ? new Date(paidItem.periodEnd) : null,
       });
+      if (options?.restoreAccount) {
+        await clearMemberAccountClosure(userId);
+      }
       return { ok: true, userId };
     }
 

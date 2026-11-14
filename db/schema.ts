@@ -45,6 +45,8 @@ export const membersTable = pgTable(
     billingPeriodEnd: timestamp(), // When the current paid period ends (if known)
     isPaidSubscriber: boolean().default(false).notNull(),
     signedUpAt: timestamp(), // Clerk account creation; used for the 6-month free trial
+    accountPausedAt: timestamp(), // Set while the member has paused their account
+    accountCanceledAt: timestamp(), // Set when the member cancels; paid access can continue until period end
   },
   (t) => [unique("members_email_unique").on(t.email)]
 );

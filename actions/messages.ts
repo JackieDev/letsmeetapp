@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { insertMessage, searchSharedGroupMembersByName } from "@/db/queries/messages";
 import { getMemberByUserId } from "@/db/queries/members";
+import { getAccountClosedMessage } from "@/lib/member-access";
 
 const sendMessageSchema = z.object({
   recipientName: z.string().min(1, "Please enter a name.").max(255),
@@ -17,6 +18,11 @@ export async function sendMessageToUser(input: SendMessageInput) {
   const { userId } = await auth();
   if (!userId) {
     throw new Error("Unauthorized");
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    throw new Error(closedAccount);
   }
 
   const parsed = sendMessageSchema.parse(input);

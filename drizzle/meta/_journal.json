@@ -92,6 +92,13 @@
       "when": 1775494000000,
       "tag": "0012_obligatory_questions",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1775495000000,
+      "tag": "0013_member_account_status",
+      "breakpoints": true
     }
   ]
 }

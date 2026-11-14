@@ -8,6 +8,7 @@ import { syncMemberBillingForUser, type SyncMemberBillingResult } from "@/lib/sy
 
 const syncMemberAfterPaymentSchema = z.object({
   planId: z.string().min(1),
+  restoreAccount: z.boolean().optional(),
 });
 
 export type SyncMemberAfterPaymentInput = z.infer<typeof syncMemberAfterPaymentSchema>;
@@ -36,14 +37,14 @@ export async function provisionMemberAfterBillingSetup(): Promise<ProvisionMembe
 export async function syncMemberAfterPayment(
   input: SyncMemberAfterPaymentInput
 ): Promise<SyncMemberBillingResult> {
-  const { planId } = syncMemberAfterPaymentSchema.parse(input);
+  const { planId, restoreAccount } = syncMemberAfterPaymentSchema.parse(input);
 
   const { userId } = await auth();
   if (!userId) {
     return { ok: false, error: "Unauthorized" };
   }
 
-  const result = await syncMemberBillingForUser(userId, planId);
+  const result = await syncMemberBillingForUser(userId, planId, { restoreAccount });
 
   if (result.ok) {
     revalidatePath("/dashboard");

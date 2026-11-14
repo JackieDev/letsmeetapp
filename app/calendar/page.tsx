@@ -4,12 +4,14 @@ import { redirect } from "next/navigation";
 import { getUpcomingEventsForUserGroups } from "@/db/queries/events";
 import { buttonVariants } from "@/components/ui/button";
 import { formatAppDateTime } from "@/lib/datetime";
+import { redirectIfAccountClosed } from "@/lib/member-access";
 
 export default async function CalendarPage() {
   const { userId } = await auth();
   if (!userId) {
     redirect("/");
   }
+  await redirectIfAccountClosed(userId);
 
   const calendarEvents = await getUpcomingEventsForUserGroups(userId);
 

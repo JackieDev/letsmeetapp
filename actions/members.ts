@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { updateMemberProfile } from "@/db/queries/members";
+import { getAccountClosedMessage } from "@/lib/member-access";
 import { MAX_STORED_IMAGE_DATA_URL_LENGTH } from "@/lib/image-data-url";
 
 const dataUrlImagePattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/;
@@ -28,6 +29,11 @@ export async function updateCurrentMemberProfile(input: UpdateMemberProfileInput
   const { userId } = await auth();
   if (!userId) {
     throw new Error("Unauthorized");
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    throw new Error(closedAccount);
   }
 
   const validated = updateMemberProfileSchema.parse(input);

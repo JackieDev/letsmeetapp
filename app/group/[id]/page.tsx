@@ -27,6 +27,7 @@ import { JoinGroupButton } from "./JoinGroupButton";
 import { LeaveGroupButton } from "./LeaveGroupButton";
 import { ViewGroupMembersDialog } from "./ViewGroupMembersDialog";
 import { MemberPhotoUploadCard } from "./MemberPhotoUploadCard";
+import { redirectIfAccountClosed } from "@/lib/member-access";
 
 export default async function GroupPage({
   params,
@@ -34,6 +35,9 @@ export default async function GroupPage({
   params: Promise<{ id: string }>;
 }) {
   const { userId } = await auth();
+  if (userId) {
+    await redirectIfAccountClosed(userId);
+  }
 
   const { id } = await params;
   const groupId = Number(id);

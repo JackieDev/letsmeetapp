@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getAccountClosedMessage } from "@/lib/member-access";
 import {
   addGroupMemberPhotos,
   getApprovedGroup,
@@ -39,6 +40,11 @@ export async function uploadGroupMemberPhotos(
   const { userId } = await auth();
   if (!userId) {
     return { success: false, error: "You must be signed in." };
+  }
+
+  const closedAccount = await getAccountClosedMessage(userId);
+  if (closedAccount) {
+    return { success: false, error: closedAccount };
   }
 
   const parsed = uploadGroupMemberPhotosSchema.safeParse(input);

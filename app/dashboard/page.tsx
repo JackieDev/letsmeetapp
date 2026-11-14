@@ -44,15 +44,17 @@ export default async function DashboardPage({
     : "profile";
 
   let access = await getMemberAccessStatus(userId);
-  let { member, hasAccess, isInFreeTrial, trialEndsAt } = access;
+  let { member, hasAccess, isInFreeTrial, isPaused, isCanceled, trialEndsAt } = access;
 
-  if (!hasAccess || !member) {
+  if ((!hasAccess || !member) && !isPaused && !isCanceled) {
     const synced = await tryActivateMemberFromClerkSubscription(userId);
     if (synced) {
       access = await getMemberAccessStatus(userId);
       member = access.member;
       hasAccess = access.hasAccess;
       isInFreeTrial = access.isInFreeTrial;
+      isPaused = access.isPaused;
+      isCanceled = access.isCanceled;
       trialEndsAt = access.trialEndsAt;
     }
   }
@@ -94,6 +96,12 @@ export default async function DashboardPage({
     ...member,
     billingPeriodEnd: member.billingPeriodEnd
       ? new Date(member.billingPeriodEnd).toISOString()
+      : null,
+    accountPausedAt: member.accountPausedAt
+      ? new Date(member.accountPausedAt).toISOString()
+      : null,
+    accountCanceledAt: member.accountCanceledAt
+      ? new Date(member.accountCanceledAt).toISOString()
       : null,
   };
 

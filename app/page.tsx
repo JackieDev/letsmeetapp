@@ -23,7 +23,7 @@ export default async function Home({
 
     let access = await getMemberAccessStatus(userId);
 
-    if (!access.hasAccess) {
+    if (!access.isPaused && !access.isCanceled && !access.hasAccess) {
       const synced = await tryActivateMemberFromClerkSubscription(userId);
       if (synced) {
         access = await getMemberAccessStatus(userId);

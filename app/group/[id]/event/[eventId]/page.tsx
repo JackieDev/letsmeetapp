@@ -14,6 +14,7 @@ import { CancelAttendanceButton } from "./CancelAttendanceButton";
 import { DeleteEventButton } from "./DeleteEventButton";
 import { EditEventDialog } from "./EditEventDialog";
 import { formatAppDateTime } from "@/lib/datetime";
+import { redirectIfAccountClosed } from "@/lib/member-access";
 
 export default async function EventPage({
   params,
@@ -21,6 +22,9 @@ export default async function EventPage({
   params: Promise<{ id: string; eventId: string }>;
 }) {
   const { userId } = await auth();
+  if (userId) {
+    await redirectIfAccountClosed(userId);
+  }
 
   const { id, eventId: eventIdParam } = await params;
   const groupId = Number(id);

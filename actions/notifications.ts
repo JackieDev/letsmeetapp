@@ -7,6 +7,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/db/queries/notifications";
+import { getAccountClosedMessage } from "@/lib/member-access";
 
 const markNotificationReadSchema = z.object({
   notificationId: z.number().int().positive(),
@@ -19,6 +20,7 @@ export async function markNotificationReadAction(
 ): Promise<void> {
   const { userId } = await auth();
   if (!userId) return;
+  if (await getAccountClosedMessage(userId)) return;
 
   const parsed = markNotificationReadSchema.safeParse(input);
   if (!parsed.success) return;
@@ -30,6 +32,7 @@ export async function markNotificationReadAction(
 export async function markAllNotificationsReadAction(): Promise<void> {
   const { userId } = await auth();
   if (!userId) return;
+  if (await getAccountClosedMessage(userId)) return;
 
   await markAllNotificationsRead(userId);
   revalidatePath("/dashboard");
