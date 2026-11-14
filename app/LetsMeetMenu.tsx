@@ -12,7 +12,8 @@ import {
 export function LetsMeetMenu() {
   const { isSignedIn } = useAuth();
   const pathname = usePathname();
-  const showHomeLink = isSignedIn === false && pathname === "/billing";
+  const showHomeLink =
+    isSignedIn === false && (pathname === "/billing" || pathname === "/groups");
 
   const navigateWithHttpRequest = (url: string) => {
     window.location.assign(url);
