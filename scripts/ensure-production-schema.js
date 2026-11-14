@@ -26,6 +26,7 @@ const sqlFiles = [
   "drizzle/0008_notifications.sql",
   "drizzle/0009_members_signed_up_at.sql",
   "drizzle/0010_ensure_members_schema.sql",
+  "drizzle/0013_member_account_status.sql",
 ];
 
 function splitStatements(contents) {
