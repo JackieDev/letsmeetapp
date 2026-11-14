@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +11,8 @@ import {
 
 export function LetsMeetMenu() {
   const { isSignedIn } = useAuth();
+  const pathname = usePathname();
+  const showHomeLink = isSignedIn === false && pathname === "/billing";
 
   const navigateWithHttpRequest = (url: string) => {
     window.location.assign(url);
@@ -35,6 +38,14 @@ export function LetsMeetMenu() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
+        {showHomeLink ? (
+          <DropdownMenuItem
+            onSelect={() => navigateWithHttpRequest("/")}
+            className="cursor-pointer"
+          >
+            Home
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           disabled={!isSignedIn}
           onSelect={() => navigateWithHttpRequest("/dashboard?tab=profile")}
